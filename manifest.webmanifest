@@ -1,0 +1,10 @@
+{
+  "name": "Movember · Nous Nours · Photoshoot",
+  "short_name": "Movember",
+  "lang": "fr",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1e8bd0",
+  "theme_color": "#1e8bd0",
+  "icons": [{ "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+}
