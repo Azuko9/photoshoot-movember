@@ -159,3 +159,5 @@ h1.hero-h1{font:inherit;margin:0}
 .btn-info{padding:0 10px}
 .brand{gap:6px}
 @media (max-width:380px){.brand b{font-size:14px;letter-spacing:0}.tag{padding:4px 6px}.btn-info{padding:0 8px}}
+.don{margin:12px 0;text-align:center;font-weight:700}
+.don a{color:#fff;text-decoration:underline;text-underline-offset:3px}

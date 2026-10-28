@@ -406,12 +406,7 @@ function render(ctx, w, h){
     ctx.drawImage(mu.img, -mw/2, -mu.ay*mh, mw, mh); ctx.restore();
   }
   ctx.drawImage(IMG.infos, 0, 0, w, h);
-  ctx.save();
-  ctx.font = `600 ${Math.round(0.034*w)}px Fredoka, "Geist", system-ui, sans-serif`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.shadowColor = 'rgba(6,32,47,.75)'; ctx.shadowBlur = 8*k; ctx.shadowOffsetY = 2*k;
-  ctx.fillStyle = '#fff'; ctx.fillText('Faites un don sur fr.movember.com', 0.5*w, 0.846*h);
-  ctx.restore();
+  // « Faites un don sur fr.movember.com » est déjà dans l'image infos : ne pas le redessiner (texte doublé)
 }
 
 /* ---------- capture ---------- */
