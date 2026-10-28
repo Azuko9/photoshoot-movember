@@ -125,19 +125,49 @@ $('#btn-timer').onclick = () => {
   const b=$('#btn-timer'); b.innerHTML = S.timer ? 'Minuteur<br>3 s' : 'Minuteur<br>off'; b.setAttribute('aria-pressed', !!S.timer);
 };
 
-/* ---------- modèles de détourage (MediaPipe, hébergés dans vendor/) ---------- */
+/* ---------- modèles de détourage (MediaPipe Tasks Vision, hébergés dans vendor/mediapipe-tasks/) ---------- */
+// Deux petits adaptateurs gardent l'interface d'avant : seg.send({image}) → onSeg ; fm.initialize() puis fm.send({image}) → S.lm.
+const TASKS = 'vendor/mediapipe-tasks/';
+let fileset = null;
 async function buildModels(h){
-  await Promise.all([
-    scriptLoad('vendor/mediapipe/selfie_segmentation/selfie_segmentation.js'),
-    scriptLoad('vendor/mediapipe/face_mesh/face_mesh.js'),
-  ]);
-  h.seg = new SelfieSegmentation({locateFile:f=>`vendor/mediapipe/selfie_segmentation/${f}`});
-  h.seg.setOptions({modelSelection:0});
-  h.seg.onResults(onSeg);
-  h.fm = new FaceMesh({locateFile:f=>`vendor/mediapipe/face_mesh/${f}`});
-  h.fm.setOptions({maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:.5, minTrackingConfidence:.5});
-  h.fm.onResults(r => { S.lm = (r.multiFaceLandmarks && r.multiFaceLandmarks[0]) || null; });
-  await h.seg.initialize();
+  await scriptLoad(TASKS + 'vision_bundle.js');            // définit la variable globale « Vision »
+  fileset ||= await Vision.FilesetResolver.forVisionTasks(TASKS + 'wasm');
+  const segmenter = await Vision.ImageSegmenter.createFromOptions(fileset, {
+    baseOptions:{modelAssetPath: TASKS + 'selfie_segmenter.tflite', delegate:'CPU'},
+    runningMode:'IMAGE', outputConfidenceMasks:true, outputCategoryMask:false,
+  });
+  const maskCv = document.createElement('canvas'), mctx = maskCv.getContext('2d');
+  h.seg = {
+    send: async ({image}) => {
+      const res = segmenter.segment(image);
+      try{
+        const m = res.confidenceMasks && res.confidenceMasks[res.confidenceMasks.length - 1];
+        if(!m) return;
+        const mw = m.width, mh = m.height, f = m.getAsFloat32Array();
+        if(maskCv.width !== mw || maskCv.height !== mh){ maskCv.width = mw; maskCv.height = mh; }
+        const px = mctx.createImageData(mw, mh), d = px.data;
+        for(let i=0, n=mw*mh; i<n; i++) d[i*4+3] = Math.max(0, Math.min(255, f[i]*255));   // l'opacité = probabilité « personne »
+        mctx.putImageData(px, 0, 0);
+        onSeg({segmentationMask: maskCv});
+      }finally{ res.close(); }
+    },
+    close: () => segmenter.close(),
+  };
+  let landmarker = null;
+  h.fm = {
+    initialize: async () => {
+      landmarker = await Vision.FaceLandmarker.createFromOptions(fileset, {
+        baseOptions:{modelAssetPath: TASKS + 'face_landmarker.task', delegate:'CPU'},
+        runningMode:'IMAGE', numFaces:1, minFaceDetectionConfidence:.5, minTrackingConfidence:.5,
+      });
+    },
+    send: async ({image}) => {
+      if(!landmarker) return;
+      const r = landmarker.detect(image);
+      S.lm = (r.faceLandmarks && r.faceLandmarks[0]) || null;
+    },
+    close: () => landmarker && landmarker.close(),
+  };
 }
 // Une seule initialisation à la fois ; deux essais de 20 s au plus ; « Réessayer » repart de zéro.
 function initModels(){

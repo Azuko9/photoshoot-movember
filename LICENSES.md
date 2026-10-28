@@ -11,12 +11,13 @@ Polices hébergées dans `fonts/` (sous-ensemble latin, woff2), licence SIL Open
 
 ## MediaPipe
 
-Fichiers hébergés dans `vendor/mediapipe/`, copiés sans modification depuis le registre npm (via jsDelivr), sous licence **Apache-2.0** (Copyright Google LLC) :
+Fichiers hébergés dans `vendor/mediapipe-tasks/`, copiés sans modification, sous licence **Apache-2.0** (Copyright Google LLC) :
 
-| Paquet | Version | Dossier |
+| Élément | Version / source | Fichiers |
 |---|---|---|
-| `@mediapipe/selfie_segmentation` | 0.1.1675465747 | `vendor/mediapipe/selfie_segmentation/` |
-| `@mediapipe/face_mesh` | 0.4.1633559619 | `vendor/mediapipe/face_mesh/` |
+| `@mediapipe/tasks-vision` (bibliothèque et WASM) | 1.1.0, registre npm | `vision_bundle.js`, `wasm/` |
+| Modèle de détourage `selfie_segmenter` (float16) | storage.googleapis.com/mediapipe-models, téléchargé le 2026-10-28 | `selfie_segmenter.tflite` |
+| Modèle de visage `face_landmarker` (float16) | storage.googleapis.com/mediapipe-models, téléchargé le 2026-10-28 | `face_landmarker.task` |
 
 Texte de la licence : https://www.apache.org/licenses/LICENSE-2.0
-
+**À vérifier par une personne** : la licence des deux modèles est annoncée Apache-2.0 sur leurs fiches (« model cards ») Google ; je n'ai pas pu relire ces fiches ici.
