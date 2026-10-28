@@ -108,18 +108,18 @@ $('#btn-timer').onclick = () => {
   const b=$('#btn-timer'); b.innerHTML = S.timer ? 'Minuteur<br>3 s' : 'Minuteur<br>off'; b.setAttribute('aria-pressed', !!S.timer);
 };
 
-/* ---------- modèles de détourage (MediaPipe, via CDN) ---------- */
+/* ---------- modèles de détourage (MediaPipe, hébergés dans vendor/) ---------- */
 async function initModels(){
   if(S.modelsReady || S.modelsFailed) return;
   try{
     await Promise.all([
-      scriptLoad('https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1.1675465747/selfie_segmentation.js'),
-      scriptLoad('https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js'),
+      scriptLoad('vendor/mediapipe/selfie_segmentation/selfie_segmentation.js'),
+      scriptLoad('vendor/mediapipe/face_mesh/face_mesh.js'),
     ]);
-    S.seg = new SelfieSegmentation({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1.1675465747/${f}`});
+    S.seg = new SelfieSegmentation({locateFile:f=>`vendor/mediapipe/selfie_segmentation/${f}`});
     S.seg.setOptions({modelSelection:0});
     S.seg.onResults(onSeg);
-    S.fm = new FaceMesh({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/${f}`});
+    S.fm = new FaceMesh({locateFile:f=>`vendor/mediapipe/face_mesh/${f}`});
     S.fm.setOptions({maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:.5, minTrackingConfidence:.5});
     S.fm.onResults(r => { S.lm = (r.multiFaceLandmarks && r.multiFaceLandmarks[0]) || null; });
     await S.seg.initialize();
