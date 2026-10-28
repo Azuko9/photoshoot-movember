@@ -67,6 +67,9 @@ const S = {
   lm:null,                        // landmarks visage
   m:null, mt:null,                // moustache lissée / cible {x,y,w,a} (fractions)
   blob:null, files:null, url:null,
+  camGen:0,                       // invalide tout démarrage de caméra en cours (Fermer, ⟲, galerie, onglet masqué)
+  camDenied:false, resume:false, countId:0, capturing:false,
+  modelsPromise:null, lastAI:0, settle:0, hintTxt:'', prepGen:0,
 };
 const pctx = S.person.getContext('2d', {willReadFrequently:false});
 const small = document.createElement('canvas'); const sctx = small.getContext('2d', {willReadFrequently:true});
@@ -82,7 +85,16 @@ function show(v){
   document.body.style.overflow = v==='camera' ? 'hidden' : '';
   window.scrollTo(0,0);
 }
-function scriptLoad(url){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=url; s.crossOrigin='anonymous'; s.onload=res; s.onerror=()=>rej(new Error('load '+url)); document.head.appendChild(s); }); }
+const scripts = {};
+function scriptLoad(url){
+  return scripts[url] ||= new Promise((res,rej)=>{
+    const s=document.createElement('script'); s.src=url;
+    s.onload=res; s.onerror=()=>{ delete scripts[url]; s.remove(); rej(new Error('load '+url)); };
+    document.head.appendChild(s);
+  });
+}
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_,rej) => setTimeout(() => rej(new Error('délai dépassé')), ms))]);
+const touch = () => { S.settle = 60; };                     // photo fixe : on ne redessine que quelques images après un changement
 const lerp = (a,b,t) => a + (b-a)*t;
 
 /* ---------- accueil / carrousel ---------- */
@@ -96,86 +108,168 @@ const car = $('#carousel');
 car.innerHTML = MUSTACHES.map((m,i) => `<button class="card" role="option" data-i="${i}" aria-pressed="${i===S.mi}"><div class="im">${m.none ? '<span class="nf">🧔</span>' : `<img src="${ASSETS['m_'+m.id]}" alt="">`}</div><b>${m.name}</b><i>${m.vibe}</i></button>`).join('');
 car.addEventListener('click', e => {
   const b = e.target.closest('.card'); if(!b) return;
-  S.mi = +b.dataset.i;
+  S.mi = +b.dataset.i; touch();
   car.querySelectorAll('.card').forEach(c => c.setAttribute('aria-pressed', c===b));
   b.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
 });
-$('#sl-mscale').oninput = e => S.mscale = +e.target.value;
-$('#sl-my').oninput     = e => S.my = +e.target.value;
-$('#sl-zoom').oninput   = e => S.zoom = +e.target.value;
+$('#sl-mscale').oninput = e => { S.mscale = +e.target.value; touch(); };
+$('#sl-my').oninput     = e => { S.my = +e.target.value; touch(); };
+$('#sl-zoom').oninput   = e => { S.zoom = +e.target.value; touch(); };
 $('#btn-timer').onclick = () => {
   S.timer = S.timer ? 0 : 3;
   const b=$('#btn-timer'); b.innerHTML = S.timer ? 'Minuteur<br>3 s' : 'Minuteur<br>off'; b.setAttribute('aria-pressed', !!S.timer);
 };
 
 /* ---------- modèles de détourage (MediaPipe, hébergés dans vendor/) ---------- */
-async function initModels(){
-  if(S.modelsReady || S.modelsFailed) return;
-  try{
-    await Promise.all([
-      scriptLoad('vendor/mediapipe/selfie_segmentation/selfie_segmentation.js'),
-      scriptLoad('vendor/mediapipe/face_mesh/face_mesh.js'),
-    ]);
-    S.seg = new SelfieSegmentation({locateFile:f=>`vendor/mediapipe/selfie_segmentation/${f}`});
-    S.seg.setOptions({modelSelection:0});
-    S.seg.onResults(onSeg);
-    S.fm = new FaceMesh({locateFile:f=>`vendor/mediapipe/face_mesh/${f}`});
-    S.fm.setOptions({maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:.5, minTrackingConfidence:.5});
-    S.fm.onResults(r => { S.lm = (r.multiFaceLandmarks && r.multiFaceLandmarks[0]) || null; });
-    await S.seg.initialize();
-    S.modelsReady = true;
-    S.fm.initialize().catch(()=>{ S.fm = null; });   // le visage est un plus : sans lui, moustache placée au jugé
-  }catch(err){
-    console.warn(err); S.modelsFailed = true; S.seg = null; S.fm = null;
-    toast("Détourage indisponible (connexion ?) : mode simplifié activé.", 5000);
-  }
+async function buildModels(h){
+  await Promise.all([
+    scriptLoad('vendor/mediapipe/selfie_segmentation/selfie_segmentation.js'),
+    scriptLoad('vendor/mediapipe/face_mesh/face_mesh.js'),
+  ]);
+  h.seg = new SelfieSegmentation({locateFile:f=>`vendor/mediapipe/selfie_segmentation/${f}`});
+  h.seg.setOptions({modelSelection:0});
+  h.seg.onResults(onSeg);
+  h.fm = new FaceMesh({locateFile:f=>`vendor/mediapipe/face_mesh/${f}`});
+  h.fm.setOptions({maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:.5, minTrackingConfidence:.5});
+  h.fm.onResults(r => { S.lm = (r.multiFaceLandmarks && r.multiFaceLandmarks[0]) || null; });
+  await h.seg.initialize();
 }
+// Une seule initialisation à la fois ; deux essais de 20 s au plus ; « Réessayer » repart de zéro.
+function initModels(){
+  if(S.modelsReady) return Promise.resolve(true);
+  if(S.modelsFailed) return Promise.resolve(false);
+  return S.modelsPromise ||= (async () => {
+    for(let essai=0; essai<2; essai++){
+      const h = {};
+      try{
+        await withTimeout(buildModels(h), 20000);
+        S.seg = h.seg; S.fm = h.fm; S.modelsReady = true;
+        S.fm.initialize().catch(()=>{ S.fm = null; });   // le visage est un plus : sans lui, moustache placée au jugé
+        return true;
+      }catch(err){
+        console.warn(err);
+        try{ h.seg && h.seg.close(); }catch(e){}
+        try{ h.fm && h.fm.close(); }catch(e){}
+      }
+    }
+    S.modelsFailed = true; S.seg = null; S.fm = null; S.modelsPromise = null;
+    return false;
+  })();
+}
+function showError(text, boutons){                         // boutons : ids à afficher parmi file, retry, continue
+  $('#cam-error-text').textContent = text;
+  for(const id of ['file','retry','continue']) $('#btn-err-'+id).hidden = !boutons.includes(id);
+  $('#cam-error').hidden = false;
+}
+const showModelsError = () => showError("Le détourage n'a pas pu se charger (connexion ?). Tu peux réessayer, ou continuer avec une découpe simplifiée.", ['retry','continue']);
 
 /* ---------- caméra ---------- */
+const setCamControls = off => { $('#btn-flip').disabled = off; $('#btn-retake').disabled = off; };
+function stopStream(){
+  if(S.stream){ S.stream.getTracks().forEach(t=>t.stop()); S.stream = null; }
+  vid.srcObject = null;
+}
+function clearCountdown(){
+  if(S.countId){ clearInterval(S.countId); S.countId = 0; }
+  $('#count').hidden = true; $('#btn-shutter').disabled = false; S.capturing = false;
+}
 async function startCamera(){
-  S.staticMode = false; S.hasMask = false; S.tr = null; S.lm = null; S.m = null;
+  const my = ++S.camGen, stale = () => my !== S.camGen;
+  S.staticMode = false; S.hasMask = false; S.tr = null; S.lm = null; S.m = null; S.camDenied = false;
+  cancelAnimationFrame(S.raf); stopStream(); clearCountdown(); setCamControls(true);
   show('camera');
   $('#cam-error').hidden = true; $('#loading').hidden = false; $('#loading-text').textContent = 'Chargement du détourage…';
-  await assetsReady;
   try{
-    if(S.stream) S.stream.getTracks().forEach(t=>t.stop());
-    S.stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:S.facing, width:{ideal:1280}, height:{ideal:1280}}, audio:false});
-    vid.srcObject = S.stream; await vid.play();
-    S.src = vid; S.mirror = S.facing === 'user';
-  }catch(err){
+    await assetsReady; if(stale()) return;
+    let st = null;
+    try{
+      st = await navigator.mediaDevices.getUserMedia({video:{facingMode:S.facing, width:{ideal:1280}, height:{ideal:1280}}, audio:false});
+      if(stale()){ st.getTracks().forEach(t=>t.stop()); return; }       // « Fermer » pendant l'invite d'autorisation
+      S.stream = st; vid.srcObject = st; await vid.play();
+      if(stale()) return;                                               // stopCamera a déjà coupé le flux
+      S.src = vid; S.mirror = S.facing === 'user';
+    }catch(err){
+      if(st){ st.getTracks().forEach(t=>t.stop()); if(S.stream===st) S.stream = null; }   // play() a échoué : le voyant s'éteint
+      if(stale()) return;
+      S.camDenied = err && (err.name==='NotAllowedError' || err.name==='SecurityError');
+      $('#loading').hidden = true;
+      showError("Impossible d'accéder à la caméra. Autorise-la dans ton navigateur, ou choisis une photo dans ta galerie.", ['file']);
+      S.src = null;
+      S.raf = requestAnimationFrame(tick);
+      return;                                                           // caméra refusée : les modèles ne se chargent que si on choisit une photo
+    }
+    const ok = await initModels(); if(stale()) return;
     $('#loading').hidden = true;
-    $('#cam-error-text').textContent = "Impossible d'accéder à la caméra. Autorise-la dans ton navigateur, ou choisis une photo dans ta galerie.";
-    $('#cam-error').hidden = false;
-    S.src = null;
-  }
-  await initModels();
-  $('#loading').hidden = true;
-  cancelAnimationFrame(S.raf); S.raf = requestAnimationFrame(tick);
+    if(!ok) showModelsError();
+    S.raf = requestAnimationFrame(tick);
+  }finally{ if(!stale()) setCamControls(false); }
 }
 function stopCamera(){
-  cancelAnimationFrame(S.raf);
-  if(S.stream){ S.stream.getTracks().forEach(t=>t.stop()); S.stream=null; }
+  S.camGen++;
+  cancelAnimationFrame(S.raf); clearCountdown(); stopStream(); setCamControls(false);
 }
 $('#btn-flip').onclick = () => { S.facing = S.facing==='user' ? 'environment' : 'user'; startCamera(); };
 $('#btn-close').onclick = () => { stopCamera(); show('landing'); };
 $('#btn-start').onclick = startCamera;
 $('#btn-err-file').onclick = () => $('#file').click();
+$('#btn-err-continue').onclick = () => { $('#cam-error').hidden = true; };
+$('#btn-err-retry').onclick = () => {
+  S.modelsFailed = false; S.modelsPromise = null;
+  if(S.staticMode){ $('#cam-error').hidden = true; $('#loading').hidden = false; finishStatic(S.camGen); }
+  else startCamera();
+};
 
+// Lit une photo de la galerie : refuse ce que le navigateur ne sait pas décoder, réduit à 2048 px au plus.
+async function readPhoto(f){
+  const url = URL.createObjectURL(f);
+  try{
+    const img = await load(url);
+    if(!img.naturalWidth) throw new Error('illisible');
+    const k = Math.min(1, 2048 / Math.max(img.naturalWidth, img.naturalHeight));
+    if(k === 1) return await copyOf(img);
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth*k); c.height = Math.round(img.naturalHeight*k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .92));
+    if(!blob) throw new Error('réduction impossible');
+    const small2 = URL.createObjectURL(blob);
+    try{ const r = await load(small2); if(!r.naturalWidth) throw new Error('illisible'); return await copyOf(r); }
+    finally{ URL.revokeObjectURL(small2); }
+  } finally { URL.revokeObjectURL(url); }
+}
+// L'image doit rester utilisable après la révocation de son adresse : on la recopie dans un canvas.
+async function copyOf(img){
+  const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+  c.getContext('2d').drawImage(img, 0, 0);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .95));
+  if(!blob) throw new Error('copie impossible');
+  const u = URL.createObjectURL(blob);
+  try{ const r = await load(u); if(!r.naturalWidth) throw new Error('illisible'); return r; }
+  finally{ URL.revokeObjectURL(u); }
+}
 $('#file').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
-  const img = await load(URL.createObjectURL(f));
-  if(S.stream){ S.stream.getTracks().forEach(t=>t.stop()); S.stream=null; }
-  $('#cam-error').hidden = true; $('#loading').hidden = false;
-  S.src = img; S.mirror = false; S.staticMode = true; S.hasMask = false; S.tr = null; S.lm = null; S.m = null;
+  let img;
+  try{ img = await readPhoto(f); }
+  catch(err){ toast("Cette photo ne peut pas être lue (essaie un JPEG ou PNG).", 5000); return; }   // l'écran reste dans son état précédent
+  const my = ++S.camGen;                                   // annule toute caméra en cours de démarrage
+  cancelAnimationFrame(S.raf); stopStream(); clearCountdown(); setCamControls(false);
+  $('#cam-error').hidden = true; $('#loading').hidden = false; $('#loading-text').textContent = 'Chargement du détourage…';
+  S.src = img; S.mirror = false; S.staticMode = true; S.hasMask = false; S.tr = null; S.lm = null; S.m = null; S.camDenied = false;
   S.vw = img.naturalWidth; S.vh = img.naturalHeight;
-  await assetsReady; await initModels();
-  await processOnce();
-  $('#loading').hidden = true;
-  cancelAnimationFrame(S.raf); S.raf = requestAnimationFrame(tick);
+  await assetsReady;
+  if(my === S.camGen) await finishStatic(my);
 };
+async function finishStatic(my){
+  const ok = await initModels(); if(my !== S.camGen) return;
+  await processOnce(); if(my !== S.camGen) return;
+  $('#loading').hidden = true;
+  if(!ok) showModelsError();
+  touch();
+  cancelAnimationFrame(S.raf); S.raf = requestAnimationFrame(tick);
+}
 async function processOnce(){
-  if(S.fm){ for(let i=0;i<2;i++){ try{ await S.fm.send({image:S.src}); }catch(e){} } }
-  if(S.seg){ try{ await S.seg.send({image:S.src}); }catch(e){} }
+  if(S.fm){ for(let i=0;i<2;i++){ try{ await withTimeout(S.fm.send({image:S.src}), 10000); }catch(e){} } }
+  if(S.seg){ try{ await withTimeout(S.seg.send({image:S.src}), 10000); }catch(e){ fallbackPerson(); } }
   else fallbackPerson();
 }
 
@@ -230,19 +324,26 @@ function fallbackPerson(){                                 // si MediaPipe n'est
 /* ---------- boucle ---------- */
 async function tick(){
   if(S.view!=='camera') return;
-  const ready = S.src && (S.staticMode || (S.src.readyState>=2 && S.src.videoWidth));
-  if(ready && !S.staticMode && !S.busy){
-    S.busy = true;
-    try{
-      if(S.seg){ await S.seg.send({image:S.src}); } else fallbackPerson();
-      if(S.fm && S.frame%3===0) await S.fm.send({image:S.src});
-    }catch(e){}
-    S.busy = false; S.frame++;
-  }
-  smooth();
-  render(pc, PW, PH);
-  const seen = performance.now()-S.lastSeen < 1500;
-  $('#hint').textContent = !S.src ? 'Caméra indisponible' : (seen || !S.hasMask) ? 'Aligne ta tête sous le toupet' : 'Je ne te vois pas : place-toi face à la caméra';
+  try{
+    const now = performance.now();
+    const ready = S.src && (S.staticMode || (S.src.readyState>=2 && S.src.videoWidth));
+    if(ready && !S.staticMode && !S.busy && now - S.lastAI >= 50){     // l'IA tourne à ~20 images/s au plus
+      S.busy = true; S.lastAI = now;
+      try{
+        if(S.seg){ await withTimeout(S.seg.send({image:S.src}), 3000); } else fallbackPerson();
+        if(S.fm && S.frame%3===0) await withTimeout(S.fm.send({image:S.src}), 3000);
+      }catch(e){}
+      finally{ S.busy = false; S.frame++; }
+    }
+    if(!S.staticMode || S.settle > 0){                                 // photo fixe : on ne redessine que quand une valeur a changé
+      smooth();
+      render(pc, PW, PH);
+      if(S.staticMode) S.settle--;
+    }
+    const seen = performance.now()-S.lastSeen < 1500;
+    const txt = !S.src ? 'Caméra indisponible' : (seen || !S.hasMask) ? 'Aligne ta tête sous le toupet' : 'Je ne te vois pas : place-toi face à la caméra';
+    if(txt !== S.hintTxt){ S.hintTxt = txt; $('#hint').textContent = txt; }
+  }catch(err){ console.warn(err); }
   S.raf = requestAnimationFrame(tick);
 }
 
@@ -296,35 +397,59 @@ function render(ctx, w, h){
 
 /* ---------- capture ---------- */
 $('#btn-shutter').onclick = () => {
+  if(S.capturing) return;                                  // anti double appui
   if(!S.hasMask){ toast('Un instant, le détourage démarre…'); return; }
+  S.capturing = true;
   if(!S.timer){ capture(); return; }
   const c = $('#count'); let n = S.timer; c.hidden = false; c.textContent = n; $('#btn-shutter').disabled = true;
-  const iv = setInterval(() => { n--; if(n>0){ c.textContent = n; } else { clearInterval(iv); c.hidden = true; $('#btn-shutter').disabled = false; capture(); } }, 1000);
+  S.countId = setInterval(() => {
+    n--;
+    if(n>0){ c.textContent = n; return; }
+    clearInterval(S.countId); S.countId = 0; c.hidden = true; $('#btn-shutter').disabled = false;
+    capture();
+  }, 1000);
 };
 async function capture(){
-  const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
-  try{ await document.fonts.load('600 40px Fredoka'); }catch(e){}
-  const c = document.createElement('canvas'); c.width = W; c.height = H;
-  render(c.getContext('2d'), W, H);
-  S.blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .93));
-  if(S.url) URL.revokeObjectURL(S.url);
-  S.url = URL.createObjectURL(S.blob);
-  stopCamera();
-  $('#res-img').src = S.url; $('#pk1').src = S.url; $('#res-name').textContent = MUSTACHES[S.mi].name;
-  $('#cap-text').textContent = CAPTION;
-  show('result');
-  prepareFiles();
+  const gen = S.camGen;
+  try{
+    if(S.view!=='camera') return;
+    const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+    try{ await withTimeout(document.fonts.load('600 40px Fredoka'), 2000); }catch(e){}
+    if(gen !== S.camGen || S.view!=='camera') return;      // fermé pendant l'attente : aucune photo
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    render(c.getContext('2d'), W, H);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .93));
+    if(!blob){ toast("La photo n'a pas pu être créée. Réessaie.", 4500); return; }
+    if(gen !== S.camGen || S.view!=='camera') return;
+    const ancienne = S.url;
+    S.blob = blob; S.url = URL.createObjectURL(blob);
+    stopCamera();
+    $('#res-img').src = S.url; $('#pk1').src = S.url; $('#res-name').textContent = MUSTACHES[S.mi].name;
+    $('#cap-text').textContent = CAPTION;
+    show('result');
+    if(ancienne) URL.revokeObjectURL(ancienne);            // révoquée seulement une fois la nouvelle affichée
+    prepareFiles();
+  }catch(err){
+    console.warn(err); toast("La photo n'a pas pu être créée. Réessaie.", 4500);
+  }finally{ S.capturing = false; }
 }
 
 /* ---------- partage ---------- */
-const dataToFile = async (data, name, type) => new File([await (await fetch(data)).blob()], name, {type});
+const dataToFile = async (data, name, type) => {
+  const r = await fetch(data); if(!r.ok) throw new Error('fetch '+data);
+  return new File([await r.blob()], name, {type});
+};
 async function prepareFiles(){
+  const my = ++S.prepGen, blob = S.blob;                   // un résultat périmé n'écrase pas S.files
   S.files = null;
-  S.files = [
-    new File([S.blob], 'nousnours-movember-moi.jpg', {type:'image/jpeg'}),
-    await dataToFile(ASSETS.explications, 'nousnours-movember-explications.jpg', 'image/jpeg'),
-    await dataToFile(ASSETS.affiche, 'nousnours-movember-tombola-42bar.jpg', 'image/jpeg'),
-  ];
+  try{
+    const files = [
+      new File([blob], 'nousnours-movember-moi.jpg', {type:'image/jpeg'}),
+      await dataToFile(ASSETS.explications, 'nousnours-movember-explications.jpg', 'image/jpeg'),
+      await dataToFile(ASSETS.affiche, 'nousnours-movember-tombola-42bar.jpg', 'image/jpeg'),
+    ];
+    if(my === S.prepGen) S.files = files;
+  }catch(err){ console.warn(err); }
 }
 function download(file){ const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
 async function copyCaption(){ try{ await navigator.clipboard.writeText(CAPTION); return true; }catch(e){ return false; } }
@@ -333,6 +458,7 @@ $('#btn-cap').onclick = async () => toast(await copyCaption() ? 'Légende copié
 $('#btn-retake').onclick = startCamera;
 $('#btn-share').onclick = async () => {
   if(!S.files){ toast('Préparation des images…'); await prepareFiles(); }
+  if(!S.files){ toast("Les images n'ont pas pu être préparées. Réessaie.", 4500); return; }
   const data = {files:S.files, title:'Movember · Nous Nours', text:CAPTION};
   if(navigator.canShare && navigator.canShare({files:S.files})){
     copyCaption();                                         // Instagram ignore le texte : on le met au presse-papier
@@ -346,6 +472,12 @@ async function fallbackAll(){
   toast("Partage direct indisponible ici : les 3 images sont téléchargées et la légende est copiée. Poste-les en carrousel !", 6500);
 }
 
-/* sécurité : on coupe la caméra si l'onglet passe en arrière-plan */
-document.addEventListener('visibilitychange', () => { if(document.hidden && S.view==='camera' && !S.staticMode) stopCamera(); else if(!document.hidden && S.view==='camera' && !S.staticMode && !S.stream) startCamera(); });
+/* sécurité : on coupe la caméra si l'onglet passe en arrière-plan ; au retour on la relance seulement si elle tournait (ou démarrait) et n'a pas été refusée */
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden){
+    if(S.view==='camera' && !S.staticMode){ S.resume = !S.camDenied; stopCamera(); }
+  }else if(S.resume && S.view==='camera' && !S.staticMode){
+    S.resume = false; startCamera();
+  }
+});
 })();
