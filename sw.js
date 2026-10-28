@@ -1,7 +1,7 @@
 /* Service worker : l'appli (page, styles, script, polices, images) est mise en cache dès la première visite ;
    les fichiers lourds de vendor/ (détourage, visage) le sont à leur premier usage, donc après la première ouverture de la caméra.
    Stratégie « cache d'abord ». POUR PUBLIER UNE MISE À JOUR : changer VERSION (sinon les visiteurs gardent l'ancienne). */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'movember-' + VERSION;
 const COEUR = [
   "./",

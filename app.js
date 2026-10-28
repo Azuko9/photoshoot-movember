@@ -242,9 +242,7 @@ async function startCamera(){
       S.raf = requestAnimationFrame(tick);
       return;                                                           // caméra refusée : les modèles ne se chargent que si on choisit une photo
     }
-    const ok = await initModels(); if(stale()) return;
-    $('#loading').hidden = true;
-    if(!ok) showModelsError();
+    $('#loading').hidden = true;                                        // aperçu simple : les modèles ne se chargent qu'après la photo
     S.raf = requestAnimationFrame(tick);
   }finally{ if(!stale()) setCamControls(false); }
 }
@@ -266,7 +264,7 @@ if(IN_APP || NO_CAM){
   $('#iab').hidden = false;
 }
 $('#btn-gallery').onclick = () => $('#file').click();
-$('#btn-err-file').onclick = () => $('#file').click();
+$('#btn-err-file').onclick = () => $('#file-cam').click();
 $('#btn-err-continue').onclick = () => { $('#cam-error').hidden = true; };
 $('#btn-err-retry').onclick = () => {
   S.modelsFailed = false; S.modelsPromise = null;
@@ -324,7 +322,7 @@ async function processOnce(){
 
 /* ---------- détourage : masque -> silhouette + repères tête ---------- */
 function onSeg(res){
-  const w = S.src.videoWidth || S.src.naturalWidth, h = S.src.videoHeight || S.src.naturalHeight;
+  const w = S.src.videoWidth || S.src.naturalWidth || S.src.width, h = S.src.videoHeight || S.src.naturalHeight || S.src.height;
   if(!w) return;
   S.vw = w; S.vh = h;
   if(S.person.width!==w || S.person.height!==h){ S.person.width=w; S.person.height=h; }
@@ -361,7 +359,7 @@ function analyseMask(mask, w, h){
   S.tgt = {topX, topY, faceW: Math.max(faceW, w*.08)};
 }
 function fallbackPerson(){                                 // si MediaPipe n'est pas dispo : découpe ovale simple
-  const w = S.src.videoWidth || S.src.naturalWidth, h = S.src.videoHeight || S.src.naturalHeight; if(!w) return;
+  const w = S.src.videoWidth || S.src.naturalWidth || S.src.width, h = S.src.videoHeight || S.src.naturalHeight || S.src.height; if(!w) return;
   S.vw=w; S.vh=h;
   if(S.person.width!==w || S.person.height!==h){ S.person.width=w; S.person.height=h; }
   pctx.clearRect(0,0,w,h); pctx.save(); pctx.beginPath();
@@ -375,22 +373,21 @@ async function tick(){
   if(S.view!=='camera') return;
   try{
     const now = performance.now();
+    const mode = S.staticMode ? 'photo' : 'live';
+    if($('#s-camera').dataset.mode !== mode) $('#s-camera').dataset.mode = mode;
     const ready = S.src && (S.staticMode || (S.src.readyState>=2 && S.src.videoWidth));
-    if(ready && !S.staticMode && !S.busy && now - S.lastAI >= 50){     // l'IA tourne à ~20 images/s au plus
-      S.busy = true; S.lastAI = now;
-      try{
-        if(S.seg){ await withTimeout(S.seg.send({image:S.src}), 3000); } else fallbackPerson();
-        if(S.fm && S.fmReady && S.frame%3===0) await withTimeout(S.fm.send({image:S.src}), 3000);
-      }catch(e){}
-      finally{ S.busy = false; S.frame++; }
-    }
-    if(!S.staticMode || S.settle > 0){                                 // photo fixe : on ne redessine que quand une valeur a changé
+    if(ready && !S.staticMode){                                        // en direct : la caméra seule, sans IA (économise la batterie)
+      const v = S.src, vw = v.videoWidth, vh = v.videoHeight, sc = Math.max(PW/vw, PH/vh);
+      pc.save(); pc.clearRect(0,0,PW,PH);
+      if(S.mirror){ pc.translate(PW,0); pc.scale(-1,1); }
+      pc.drawImage(v, (PW-vw*sc)/2, (PH-vh*sc)/2, vw*sc, vh*sc); pc.restore();
+    }else if(!S.staticMode || S.settle > 0){                                 // photo fixe : on ne redessine que quand une valeur a changé
       smooth();
       render(pc, PW, PH);
       if(S.staticMode) S.settle--;
     }
     const seen = performance.now()-S.lastSeen < 1500;
-    const txt = !S.src ? 'Caméra indisponible' : (seen || !S.hasMask) ? 'Aligne ta tête sous le toupet' : 'Je ne te vois pas : place-toi face à la caméra';
+    const txt = !S.src ? 'Caméra indisponible' : !S.staticMode ? 'Cadre ton visage, puis déclenche' : S.camDenied || !S.src ? 'Caméra indisponible' : 'Ajuste si besoin, puis valide';
     if(txt !== S.hintTxt){ S.hintTxt = txt; $('#hint').textContent = txt; }
   }catch(err){ console.warn(err); }
   S.raf = requestAnimationFrame(tick);
@@ -440,17 +437,30 @@ function render(ctx, w, h){
 }
 
 /* ---------- capture ---------- */
+async function freezeFrame(){                              // fige l'image de la caméra, puis pose la moustache comme sur une photo importée
+  const v = S.src; if(!v || !v.videoWidth){ S.capturing = false; return; }
+  const c = document.createElement('canvas'); c.width = v.videoWidth; c.height = v.videoHeight;
+  const x = c.getContext('2d'); if(S.mirror){ x.translate(c.width, 0); x.scale(-1, 1); } x.drawImage(v, 0, 0);
+  const my = ++S.camGen;
+  cancelAnimationFrame(S.raf); stopStream(); clearCountdown(); setCamControls(false);
+  $('#loading').hidden = false; $('#loading-text').textContent = 'Pose de la moustache…';
+  S.src = c; S.mirror = false; S.staticMode = true; S.hasMask = false; S.tr = null; S.lm = null; S.m = null; S.camDenied = false;
+  S.vw = c.width; S.vh = c.height;
+  await assetsReady;
+  if(my === S.camGen) await finishStatic(my);
+}
 $('#btn-shutter').onclick = () => {
   if(S.capturing) return;                                  // anti double appui
-  if(!S.hasMask){ toast('Un instant, le détourage démarre…'); return; }
+  const go = () => S.staticMode ? capture() : freezeFrame();
+  if(S.staticMode && !S.hasMask){ toast('Un instant, le détourage démarre…'); return; }
   S.capturing = true;
-  if(!S.timer){ capture(); return; }
+  if(!S.timer){ go(); return; }
   const c = $('#count'); let n = S.timer; c.hidden = false; c.textContent = n; $('#btn-shutter').disabled = true;
   S.countId = setInterval(() => {
     n--;
     if(n>0){ c.textContent = n; return; }
     clearInterval(S.countId); S.countId = 0; c.hidden = true; $('#btn-shutter').disabled = false;
-    capture();
+    go();
   }, 1000);
 };
 async function capture(){
@@ -502,16 +512,27 @@ $('#cap-tags').onchange = () => { $('#cap-text').textContent = caption(); };
 $('#btn-dl').onclick = () => { download(new File([S.blob],'nousnours-movember-moi.jpg',{type:'image/jpeg'})); };
 $('#btn-cap').onclick = async () => { if(await copyCaption()) toast('Légende copiée ✔'); else { selectCaption(); toast('Copie impossible : la légende est sélectionnée, copie-la à la main.', 4500); } };
 $('#btn-retake').onclick = startCamera;
-$('#btn-share').onclick = async () => {
+$('#btn-share').onclick = () => { const m = $('#share-menu'); m.hidden = !m.hidden; $('#btn-share').setAttribute('aria-expanded', String(!m.hidden)); };
+document.querySelectorAll('#share-menu [data-net]').forEach(b => b.onclick = async () => {
+  const net = b.dataset.net;
+  if(net === 'lien'){
+    try{ await navigator.clipboard.writeText(location.origin + location.pathname.replace(/[^/]*$/, '')); toast('Lien du site copié 🐻'); }
+    catch(e){ toast(location.href, 6000); }
+    return;
+  }
+  await shareFiles(net);
+});
+async function shareFiles(net){
   if(!S.files){ toast('Préparation des images…'); await prepareFiles(); }
   if(!S.files){ toast("Les images n'ont pas pu être préparées. Réessaie.", 4500); return; }
   const data = {files:S.files, title:'Movember · Nous Nours', text:caption()};
   if(navigator.canShare && navigator.canShare({files:S.files})){
     copyCaption();                                         // Instagram ignore le texte : on le met au presse-papier
+    toast('Choisis ' + net + ' dans la liste, puis colle la légende 🐻', 4500);
     try{ await navigator.share(data); toast("Légende copiée : colle-la dans ta publication 🐻"); }
     catch(e){ if(e.name!=='AbortError'){ console.warn(e); fallbackAll(); } }
   }else fallbackAll();
-};
+}
 async function fallbackAll(){                              // pas de téléchargements en rafale : un bouton par image
   const ok = await copyCaption();
   $('#dl-list').hidden = false;
