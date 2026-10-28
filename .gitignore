@@ -1,0 +1,4 @@
+retouche/
+*.bak
+*.orig
+.env

@@ -20,6 +20,7 @@ const ASSETS = {
   "logo": "assets/logo.webp",
   "s1": "assets/s1.webp",
   "m_classique": "assets/m_classique.webp",
+  "logo42": "assets/logo42.webp",
   "m_bearnaise": "assets/m_bearnaise.webp"
 };
 
@@ -35,13 +36,13 @@ const PW = 540, PH = 675;                       // taille de l'aperçu
 const HEAD_Y = 0.385 * H, HEAD_X = 0.505 * W, FACE_W = 0.28 * W;
 
 const MUSTACHES = [
+  {id:'classique', name:'La Classique',          vibe:'class et chic',               wf:1.90, ay:.45},
   {id:'none',      name:'Ma vraie moustache',    vibe:'au naturel',                  none:true},
   {id:'pintxours', name:"La PINTX'Ours",         vibe:'gourmande et piquante',       wf:2.00, ay:.40},
   {id:'bearnaise', name:"L'haleine BEARnaise",   vibe:'douce et bouclée',            wf:1.70, ay:.18},
   {id:'resina',    name:'La BEAR Résina',        vibe:'collante mais Landaise',      wf:2.20, ay:.42},
   {id:'mourstache',name:'La mOURStache',         vibe:'charnue et chaleureuse',      wf:1.80, ay:.35},
   {id:'rainbow',   name:'La RainbowBEAR',        vibe:'fière et grande',             wf:2.30, ay:.50},
-  {id:'classique', name:'La Classique',          vibe:'class et chic',               wf:1.90, ay:.45},
   {id:'shebear',   name:'La SheBEARpunk',        vibe:'poétique et engagée',         wf:1.60, ay:.50},
   {id:'oursonne',  name:"L'Oursonne Mo Sistas",  vibe:'alliée et protectrice',       wf:2.10, ay:.50},
   {id:'fluours',   name:'La FluOURS !',          vibe:'club et friendly',            wf:1.95, ay:.38},
@@ -52,7 +53,7 @@ const TAGS = " #lgbt #Bear";                               // hashtags ajoutés 
 const caption = () => CAPTION_BASE + ($('#cap-tags').checked ? TAGS : '');
 
 /* ---------- assets ---------- */
-document.querySelectorAll('img[data-asset]').forEach(i => i.src = ASSETS[i.dataset.asset]);
+document.querySelectorAll('img[data-asset]').forEach(i => { i.decoding = 'async'; i.src = ASSETS[i.dataset.asset]; });
 const load = src => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(i); i.src = src; });
 const IMG = {};
 const assetsReady = Promise.all([
@@ -63,7 +64,7 @@ const assetsReady = Promise.all([
 
 /* ---------- état ---------- */
 const S = {
-  view:'landing', mi:1, mscale:1, my:0, zoom:1, timer:0,
+  view:'landing', mi:0, mscale:1, my:0, zoom:1, timer:0,
   facing:'user', mirror:true, stream:null, raf:0, busy:false, frame:0,
   src:null, staticMode:false, vw:0, vh:0,
   seg:null, fm:null, modelsReady:false, modelsFailed:false,
@@ -81,7 +82,7 @@ const small = document.createElement('canvas'); const sctx = small.getContext('2
 const vid = $('#vid'), prev = $('#preview'), pc = prev.getContext('2d');
 
 /* ---------- utilitaires ---------- */
-function toast(t, ms=3200){ const e=$('#toast'); e.textContent=t; e.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>e.classList.remove('on'),ms); }
+function toast(t, ms=6000){ const e=$('#toast'); e.textContent=t; e.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>e.classList.remove('on'),ms); }
 function show(v){
   S.view = v;
   $('#s-landing').hidden = v!=='landing';
@@ -89,7 +90,14 @@ function show(v){
   $('#s-result').hidden  = v!=='result';
   document.body.style.overflow = v==='camera' ? 'hidden' : '';
   window.scrollTo(0,0);
+  if(v==='camera' && !(history.state && history.state.cam)) history.pushState({cam:1}, '');   // le bouton Retour d'Android ferme la caméra
+  const cible = {landing:'#btn-start', camera:'#cam-title', result:'#res-title'}[v];            // lecteur d'écran : le focus suit l'écran affiché
+  if(cible) $(cible).focus({preventScroll:true});
 }
+addEventListener('popstate', () => {
+  if(S.view==='camera'){ stopCamera(); show('landing'); }
+  else if(S.view==='result') show('landing');
+});
 const scripts = {};
 function scriptLoad(url){
   return scripts[url] ||= new Promise((res,rej)=>{
@@ -102,27 +110,35 @@ const withTimeout = (p, ms) => Promise.race([p, new Promise((_,rej) => setTimeou
 const touch = () => { S.settle = 60; };                     // photo fixe : on ne redessine que quelques images après un changement
 const lerp = (a,b,t) => a + (b-a)*t;
 
+document.querySelectorAll('a[target=_blank]').forEach(a => {
+  if(a.hasAttribute('aria-label')) a.setAttribute('aria-label', a.getAttribute('aria-label') + ' (nouvel onglet)');
+  else a.insertAdjacentHTML('beforeend', '<span class="sr-only"> (nouvel onglet)</span>');
+});
+
 /* ---------- accueil / carrousel ---------- */
 (() => {                                                   // diaporama automatique de l'accueil
-  const sl = [...document.querySelectorAll('#slides .slide')]; let n = 0;
+  const sl = [...document.querySelectorAll('#slides .slide')]; let n = 0, pause = false;
   if(sl.length < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;   // pas d'animation si l'utilisateur l'a demandé
-  setInterval(() => { if(document.hidden || S.view!=='landing') return; sl[n].classList.remove('on'); n = (n+1) % sl.length; sl[n].classList.add('on'); }, 3200);
+  const cadre = $('#slides');                              // toucher le cadre met le défilement en pause (et le relance)
+  cadre.onclick = () => { pause = !pause; cadre.setAttribute('aria-pressed', pause); cadre.classList.toggle('is-paused', pause); };
+  setInterval(() => { if(pause || document.hidden || S.view!=='landing') return; sl[n].classList.remove('on'); n = (n+1) % sl.length; sl[n].classList.add('on'); }, 3200);
 })();
-$('#tiles').innerHTML = TILES.map(id => MUSTACHES.find(m => m.id===id)).map(m => `<div class="tile"><img src="${ASSETS['m_'+m.id]}" alt="${m.name}"></div>`).join('');
+$('#tiles').innerHTML = TILES.map(id => MUSTACHES.find(m => m.id===id)).map(m => `<div class="tile"><img src="${ASSETS['m_'+m.id]}" alt=""></div>`).join('');
 const car = $('#carousel');
-car.innerHTML = MUSTACHES.map((m,i) => `<button class="card" data-i="${i}" aria-pressed="${i===S.mi}"><div class="im">${m.none ? '<span class="nf">🧔</span>' : `<img src="${ASSETS['m_'+m.id]}" alt="">`}</div><b>${m.name}</b><i>${m.vibe}</i></button>`).join('');
+car.innerHTML = MUSTACHES.map((m,i) => `<button class="card" role="radio" data-i="${i}" aria-checked="${i===S.mi}"><div class="im">${m.none ? '<span class="nf">🧔</span>' : `<img src="${ASSETS['m_'+m.id]}" alt="">`}</div><b>${m.name}</b><i>${m.vibe}</i></button>`).join('');
 car.addEventListener('click', e => {
   const b = e.target.closest('.card'); if(!b) return;
   S.mi = +b.dataset.i; touch();
-  car.querySelectorAll('.card').forEach(c => c.setAttribute('aria-pressed', c===b));
+  car.querySelectorAll('.card').forEach(c => c.setAttribute('aria-checked', c===b));
   b.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
 });
-$('#sl-mscale').oninput = e => { S.mscale = +e.target.value; touch(); };
-$('#sl-my').oninput     = e => { S.my = +e.target.value; touch(); };
-$('#sl-zoom').oninput   = e => { S.zoom = +e.target.value; touch(); };
+const pct = v => Math.round(v*100) + ' %';
+$('#sl-mscale').oninput = e => { S.mscale = +e.target.value; $('#o-mscale').textContent = pct(S.mscale); touch(); };
+$('#sl-my').oninput     = e => { S.my = +e.target.value; $('#o-my').textContent = (S.my>0 ? '+' : '') + S.my; touch(); };
+$('#sl-zoom').oninput   = e => { S.zoom = +e.target.value; $('#o-zoom').textContent = pct(S.zoom); touch(); };
 $('#btn-timer').onclick = () => {
   S.timer = S.timer ? 0 : 3;
-  const b=$('#btn-timer'); b.innerHTML = S.timer ? 'Minuteur<br>3 s' : 'Minuteur<br>off'; b.setAttribute('aria-pressed', !!S.timer);
+  $('#timer-txt').innerHTML = S.timer ? 'Minuteur<br>3 s' : 'Minuteur<br>off'; $('#btn-timer').setAttribute('aria-pressed', !!S.timer);
 };
 
 /* ---------- modèles de détourage (MediaPipe Tasks Vision, hébergés dans vendor/mediapipe-tasks/) ---------- */
@@ -173,6 +189,8 @@ async function buildModels(h){
 function initModels(){
   if(S.modelsReady) return Promise.resolve(true);
   if(S.modelsFailed) return Promise.resolve(false);
+  const cx = navigator.connection;
+  if(!S.modelsPromise && cx && (cx.saveData || /^(slow-2g|2g|3g)$/.test(cx.effectiveType||''))) toast("Connexion lente ou économie de données : environ 8 Mo à télécharger une seule fois, patience.", 9000);
   return S.modelsPromise ||= (async () => {
     for(let essai=0; essai<2; essai++){
       const h = {};
@@ -194,7 +212,7 @@ function initModels(){
 }
 function camMessage(err){
   const n = err && err.name;
-  if(n==='NotAllowedError' || n==='SecurityError') return "La caméra est refusée. Autorise-la dans les réglages de ton navigateur, ou choisis une photo.";
+  if(n==='NotAllowedError' || n==='SecurityError') return "La caméra est bloquée. Pour l'autoriser sur Android : touche le cadenas à côté de l'adresse, puis « Autorisations », puis « Caméra ». Sur iPhone : Réglages, Safari, Caméra. Ou choisis une photo.";
   if(n==='NotFoundError' || n==='OverconstrainedError') return "Aucune caméra trouvée sur cet appareil. Choisis une photo à la place.";
   if(n==='NotReadableError' || n==='AbortError') return "La caméra est utilisée par une autre application. Ferme-la puis réessaie, ou choisis une photo.";
   if(!window.isSecureContext) return "La caméra demande une connexion sécurisée (HTTPS). Choisis une photo à la place.";
@@ -204,8 +222,9 @@ function showError(text, boutons){                         // boutons : ids à a
   $('#cam-error-text').textContent = text;
   for(const id of ['file','retry','continue']) $('#btn-err-'+id).hidden = !boutons.includes(id);
   $('#cam-error').hidden = false;
+  $('#cam-error button:not([hidden])').focus({preventScroll:true});   // le lecteur d'écran annonce l'erreur (role=alert) et le focus arrive sur le premier choix
 }
-const showModelsError = () => showError("Le détourage n'a pas pu se charger (connexion ?). Tu peux réessayer, ou continuer avec une découpe simplifiée.", ['retry','continue']);
+const showModelsError = () => showError("La préparation de la photo n'a pas pu se faire (connexion ?). Tu peux réessayer, ou continuer avec une découpe simplifiée.", ['retry','continue']);
 
 /* ---------- caméra ---------- */
 const setCamControls = off => { $('#btn-flip').disabled = off; $('#btn-retake').disabled = off; };
@@ -222,12 +241,12 @@ async function startCamera(){
   S.staticMode = false; S.hasMask = false; S.tr = null; S.lm = null; S.m = null; S.camDenied = false;
   cancelAnimationFrame(S.raf); stopStream(); clearCountdown(); setCamControls(true);
   show('camera');
-  $('#cam-error').hidden = true; $('#loading').hidden = false; $('#loading-text').textContent = 'Chargement du détourage…';
+  $('#cam-error').hidden = true; $('#loading').hidden = false; $('#loading-text').textContent = 'Préparation de la photo…';
   try{
     await assetsReady; if(stale()) return;
     let st = null;
     try{
-      st = await navigator.mediaDevices.getUserMedia({video:{facingMode:S.facing, width:{ideal:1280}, height:{ideal:1280}}, audio:false});
+      st = await navigator.mediaDevices.getUserMedia({video:{facingMode:S.facing, width:{ideal:720}, height:{ideal:720}, frameRate:{ideal:30, max:30}}, audio:false});
       if(stale()){ st.getTracks().forEach(t=>t.stop()); return; }       // « Fermer » pendant l'invite d'autorisation
       S.stream = st; vid.srcObject = st; await vid.play();
       if(stale()) return;                                               // stopCamera a déjà coupé le flux
@@ -251,7 +270,7 @@ function stopCamera(){
   cancelAnimationFrame(S.raf); clearCountdown(); stopStream(); setCamControls(false);
 }
 $('#btn-flip').onclick = () => { S.facing = S.facing==='user' ? 'environment' : 'user'; startCamera(); };
-$('#btn-close').onclick = () => { stopCamera(); show('landing'); };
+$('#btn-close').onclick = () => { if(history.state && history.state.cam) history.back(); else { stopCamera(); show('landing'); } };
 $('#btn-start').onclick = startCamera;
 
 /* navigateurs intégrés (Instagram, Facebook, TikTok) : la caméra y est souvent bloquée → on propose l'appareil photo natif ou un navigateur normal */
@@ -272,14 +291,14 @@ $('#btn-err-retry').onclick = () => {
   else startCamera();
 };
 
-// Lit une photo de la galerie : refuse ce que le navigateur ne sait pas décoder ; au-delà de 2048 px sur le grand côté,
+// Lit une photo de la galerie : refuse ce que le navigateur ne sait pas décoder ; au-delà de 1600 px sur le grand côté,
 // la réduit (PNG sans perte). Sinon l'image d'origine est gardée telle quelle (aucun ré-encodage).
 async function readPhoto(f){
   const url = URL.createObjectURL(f);
   try{
     const img = await load(url);
     if(!img.naturalWidth) throw new Error('illisible');
-    const k = Math.min(1, 2048 / Math.max(img.naturalWidth, img.naturalHeight));
+    const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
     if(k === 1) return img;                                // décodée : elle reste utilisable après la révocation de l'adresse
     const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth*k); c.height = Math.round(img.naturalHeight*k);
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
@@ -298,7 +317,7 @@ const onPhoto = async e => {
   const my = ++S.camGen;                                   // annule toute caméra en cours de démarrage
   cancelAnimationFrame(S.raf); stopStream(); clearCountdown(); setCamControls(false);
   show('camera');                                          // depuis l'accueil (photo choisie sans passer par la caméra)
-  $('#cam-error').hidden = true; $('#loading').hidden = false; $('#loading-text').textContent = 'Chargement du détourage…';
+  $('#cam-error').hidden = true; $('#loading').hidden = false; $('#loading-text').textContent = 'Préparation de la photo…';
   S.src = img; S.mirror = false; S.staticMode = true; S.hasMask = false; S.tr = null; S.lm = null; S.m = null; S.camDenied = false;
   S.vw = img.naturalWidth; S.vh = img.naturalHeight;
   await assetsReady;
@@ -373,6 +392,8 @@ async function tick(){
   if(S.view!=='camera') return;
   try{
     const now = performance.now();
+    if(!S.staticMode && now - (tick.t||0) < 33){ S.raf = requestAnimationFrame(tick); return; }   // aperçu limité à ~30 images/s (moins de chauffe)
+    tick.t = now;
     const mode = S.staticMode ? 'photo' : 'live';
     if($('#s-camera').dataset.mode !== mode) $('#s-camera').dataset.mode = mode;
     const ready = S.src && (S.staticMode || (S.src.readyState>=2 && S.src.videoWidth));
@@ -467,6 +488,7 @@ async function capture(){
   const gen = S.camGen;
   try{
     if(S.view!=='camera') return;
+    if(navigator.vibrate) navigator.vibrate(40);
     const f = $('#flash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
     try{ await withTimeout(document.fonts.load('600 40px Fredoka'), 2000); }catch(e){}
     if(gen !== S.camGen || S.view!=='camera') return;      // fermé pendant l'attente : aucune photo
@@ -509,7 +531,7 @@ function download(file){ const a=document.createElement('a'); a.href=URL.createO
 async function copyCaption(){ try{ await navigator.clipboard.writeText(caption()); return true; }catch(e){ return false; } }
 function selectCaption(){ const r = document.createRange(); r.selectNodeContents($('#cap-text')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
 $('#cap-tags').onchange = () => { $('#cap-text').textContent = caption(); };
-$('#btn-dl').onclick = () => { download(new File([S.blob],'nousnours-movember-moi.jpg',{type:'image/jpeg'})); };
+$('#btn-dl').onclick = () => { download(new File([S.blob],'nousnours-movember-moi-' + Date.now().toString(36) + '.jpg',{type:'image/jpeg'})); toast('Image enregistrée dans tes téléchargements.'); };
 $('#btn-cap').onclick = async () => { if(await copyCaption()) toast('Légende copiée ✔'); else { selectCaption(); toast('Copie impossible : la légende est sélectionnée, copie-la à la main.', 4500); } };
 $('#btn-retake').onclick = startCamera;
 $('#btn-share').onclick = () => shareFiles();
@@ -520,7 +542,7 @@ async function shareFiles(){
   if(navigator.canShare && navigator.canShare({files:S.files})){
     copyCaption();                                         // Instagram ignore le texte : on le met au presse-papier
         try{ await navigator.share(data); toast("Légende copiée : colle-la dans ta publication 🐻"); }
-    catch(e){ if(e.name!=='AbortError'){ console.warn(e); fallbackAll(); } }
+    catch(e){ if(e.name==='AbortError') toast('Partage annulé.'); else { console.warn(e); fallbackAll(); } }
   }else fallbackAll();
 }
 async function fallbackAll(){                              // pas de téléchargements en rafale : un bouton par image
@@ -528,6 +550,25 @@ async function fallbackAll(){                              // pas de télécharg
   $('#dl-list').hidden = false;
   toast(ok ? "Partage direct indisponible ici : la légende est copiée, télécharge les images ci-dessous." : "Partage direct indisponible ici : télécharge les images ci-dessous.", 5500);
 }
+/* « Soirée caritative » : un fichier .ics s'ouvre dans l'agenda du téléphone (18h à 22h, heure de Paris) */
+$('#btn-agenda').onclick = () => {
+  const q = new URLSearchParams({action:'TEMPLATE', text:'Soirée caritative Movember – Nous Nours',
+    dates:'20261122T180000/20261122T220000', ctz:'Europe/Paris',
+    details:'Tombola, entrée gratuite, buffet offert. Au profit de la fondation Movember.',
+    location:'42 Bar, 42 rue Pannecau, Bayonne'});
+  window.open('https://calendar.google.com/calendar/render?' + q, '_blank', 'noopener');
+};
+
+/* plein écran : un toucher sur l'image (ou sur le fond) la ferme ; Échap aussi */
+const lb = $('#lightbox');
+const lbClose = () => { lb.hidden = true; if(lb.opener) lb.opener.focus(); };
+document.querySelectorAll('[data-zoom]').forEach(b => b.onclick = () => {
+  const src = b.querySelector('img').src, alt = b.querySelector('img').alt || b.getAttribute('aria-label').replace(/^Agrandir (l'image |l'affiche )?: /, '');
+  $('#lb-img').src = src; $('#lb-img').alt = alt; lb.opener = b; lb.hidden = false; $('#lb-close').focus();
+});
+lb.onclick = lbClose;
+addEventListener('keydown', e => { if(e.key==='Escape' && !lb.hidden) lbClose(); });
+
 document.querySelectorAll('#dl-list [data-dl]').forEach(b => b.onclick = () => { if(S.files) download(S.files[+b.dataset.dl]); });
 
 /* sécurité : on coupe la caméra si l'onglet passe en arrière-plan ; au retour on la relance seulement si elle tournait (ou démarrait) et n'a pas été refusée */

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' blob:; font-src 'self'; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1976b5">
@@ -21,154 +21,162 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<a class="skip" href="#contenu">Aller au contenu</a>
 
 <header class="top">
   <div class="top-in">
     <div class="brand">
-      <div class="brand-dot"><img data-asset="empreinte" alt="Empreinte Nous Nours"></div>
-      <b>NOUS NOURS</b>
-      <span class="tag">BEAR • MOVEMBER</span>
+      <div class="brand-dot"><img data-asset="empreinte" alt=""></div>
+      <b>Nous Nours</b>
+      <span class="tag">Bear · Movember</span>
     </div>
-    <a class="btn-info" href="https://www.nousnours.fr" target="_blank" rel="noopener">Notre Site</a>
+    <a class="btn-info" href="https://www.nousnours.fr" target="_blank" rel="noopener noreferrer">Notre site</a>
   </div>
-  <div id="infos">Ta photo est traitée sur ton téléphone et n'est envoyée nulle part. Ce site ne charge aucun service extérieur. Il n'utilise ni cookie ni statistique. <a href="confidentialite.html">En savoir plus</a></div>
 </header>
 
 <!-- ============ ACCUEIL ============ -->
-<main id="s-landing">
+<main id="s-landing"><span id="contenu"></span>
   <section class="hero">
     <div class="hero-pills">
-      <span class="pill-black">BAYONNE : SOIRÉE CARITATIVE · DIMANCHE 22 NOVEMBRE</span>
-      <a class="pill-orange" href="https://www.instagram.com/le.42.bar/" target="_blank" rel="noopener" aria-label="42 Bar sur Instagram">42 BAR</a>
+      <button class="pill-black" id="btn-agenda"><span class="pb-t"><span aria-hidden="true">📅</span> Soirée caritative · Bayonne · dim. 22 novembre</span><span class="pb-a" id="agenda-act"><span aria-hidden="true">＋</span> Ajouter à mon agenda<span aria-hidden="true"> ↗</span></span></button>
+      <a class="pill-orange" href="https://www.google.com/maps/search/?api=1&query=42+Bar+42+rue+Pannecau+Bayonne" target="_blank" rel="noopener noreferrer"><img data-asset="logo42" alt="42 Bar"><span class="pb-a">Itinéraire<span aria-hidden="true"> ↗</span><span class="sr-only"> : 42 rue Pannecau à Bayonne, sur Google Maps</span></span></a>
     </div>
     <div class="hero-grid">
-      <div>
+      <div class="hero-brand">
         <img class="hero-logo" data-asset="logo" alt="Nous Nours – Asso Bear LGBTQIA+ 64-40">
         <h1 class="hero-h1"><img class="hero-title" data-asset="titre" alt="Movember"></h1>
       </div>
-      <div class="frame-wrap">
-        <div class="frame" id="slides" aria-label="Photos des participants Movember">
-          <img class="slide on" data-asset="s1" alt="Portrait d'un participant Movember avec sa moustache de bear (photo 1 sur 5)">
-          <img class="slide" data-asset="s2" alt="Portrait d'un participant Movember avec sa moustache de bear (photo 2 sur 5)">
-          <img class="slide" data-asset="s3" alt="Portrait d'un participant Movember avec sa moustache de bear (photo 3 sur 5)">
-          <img class="slide" data-asset="s4" alt="Portrait d'un participant Movember avec sa moustache de bear (photo 4 sur 5)">
-          <img class="slide" data-asset="s5" alt="Portrait d'un participant Movember avec sa moustache de bear (photo 5 sur 5)">
-        </div>
-        <span class="frame-tag">Fun et Solidaire</span>
-      </div>
     </div>
 
-    <p class="dates">DU 01 AU 30 NOVEMBRE <span>+ D'INFO sur fr.movember.com</span></p>
+    <p class="dates">Du 1er au 30 novembre</p>
+    <a class="more" href="https://fr.movember.com" target="_blank" rel="noopener noreferrer">Plus d'infos sur fr.movember.com</a>
 
     <div class="note">
       <div>
-        <div class="chips"><span class="chip b">PRÉVENTION</span><span class="chip k">BEAR COMMUNITY</span></div>
-        <p>Participez à la prévention Movember : prenez-vous en photo et partagez-la sur les réseaux pour sensibiliser à la santé masculine.</p>
-        <small>Entre Nours on se serre les coudes — un cliché poilu, plein de douceur et de solidarité 🐻💙</small>
+        <p class="eyebrow">Prévention · Bear community</p>
+        <p>Prends-toi en photo avec une moustache et partage-la pour sensibiliser à la santé masculine.</p>
       </div>
     </div>
 
-    <div class="feat"><span class="f1">PARTICIPONS</span><span class="f2">PARTAGONS</span><span class="f3">SOYONS SOLIDAIRE</span></div>
+    <p class="feat">Participons · Partageons · Soyons solidaires</p>
+    <div class="frame-wrap">
+      <button class="frame" id="slides" aria-pressed="false" aria-label="Photos de participants Movember portant une moustache de bear. Toucher pour mettre le défilement en pause.">
+        <img class="slide on" data-asset="s1" alt="">
+        <img class="slide" data-asset="s2" alt="">
+        <img class="slide" data-asset="s3" alt="">
+        <img class="slide" data-asset="s4" alt="">
+        <img class="slide" data-asset="s5" alt="">
+        <span class="paused" aria-hidden="true">⏸ En pause</span>
+      </button>
+    </div>
+    <button class="cta" id="btn-start">Fais ta photo 📸</button>
     <div class="iab" id="iab" hidden>
       <p id="iab-text"></p>
       <label class="btn w iab-btn" for="file-cam">Prendre une photo</label>
       <input type="file" id="file-cam" accept="image/*" capture="user" hidden>
     </div>
-    <div class="tiles" id="tiles"></div>
-    <button class="cta" id="btn-start">Lancer le Photoshoot 📸</button>
-    <p class="cta-note">Fonctionne sur iPhone &amp; Android • Aucune photo envoyée</p>
   </section>
 
   <section class="how">
-    <h2>COMMENT ÇA MARCHE ?</h2>
-    <div class="how-grid">
-      <div><b>1. Cadre</b>Mets ta tête sous le toupet poilu MOVEMBER</div>
-      <div><b>2. Moustache</b>Swipe le carrousel, trouve ton style bear</div>
-      <div><b>3. Partage</b>Partage ta photo + les 2 images infos en un clic</div>
-    </div>
+    <h2>Comment ça marche ?</h2>
+    <ol class="steps">
+      <li><b>1. Cadre</b> ton visage dans la photo</li>
+      <li><b>2. Choisis</b> ta moustache de bear</li>
+      <li><b>3. Partage</b> ta photo et les 2 images d'infos</li>
+    </ol>
+  </section>
+
+  <section class="mous">
+    <h2>Les moustaches à essayer</h2>
+    <div class="tiles" id="tiles" aria-hidden="true"></div>
   </section>
 
   <section class="pack">
-    <img loading="lazy" data-asset="explications" alt="Movember, c'est quoi ?">
-    <img loading="lazy" data-asset="affiche" alt="Affiche : super gros lot surprise, tombola au 42 Bar">
+    <button class="zoom" data-zoom="explications" aria-label="Agrandir l'image : Movember, c'est quoi ?"><img loading="lazy" data-asset="explications" alt="Movember, c'est quoi ?"></button>
+    <button class="zoom" data-zoom="affiche" aria-label="Agrandir l'affiche : super gros lot surprise, tombola au 42 Bar"><img loading="lazy" data-asset="affiche" alt=""></button>
     <p class="sr-only">Soirée caritative dimanche 22 novembre dès 18h au 42 Bar, 42 rue Pannecau, Bayonne : tombola, entrée gratuite, buffet offert. Movember du 1er au 30 novembre : fr.movember.com.</p>
   </section>
 
-  <footer>© Association Bear LGBTQIA+ NousNours 64 / 40 - <a href="https://www.nousnours.fr" target="_blank" rel="noopener">www.nousnours.fr</a><br>Évènement caritatif pour la fondation MOVEMBER <a href="https://fr.movember.com" target="_blank" rel="noopener">fr.movember.com</a></footer>
+  <footer>© Association Bear LGBTQIA+ NousNours 64 / 40 - <a href="https://www.nousnours.fr" target="_blank" rel="noopener noreferrer">www.nousnours.fr</a><br>Évènement caritatif pour la fondation Movember <a href="https://fr.movember.com" target="_blank" rel="noopener noreferrer">fr.movember.com</a><br><a href="confidentialite.html">Confidentialité et mentions légales</a></footer>
 </main>
 
 <!-- ============ CAMERA ============ -->
-<section class="screen" id="s-camera" aria-label="Prise de la photo" hidden>
-  <video id="vid" playsinline muted autoplay></video>
+<section class="screen" id="s-camera" aria-labelledby="cam-title" hidden>
+  <h2 class="sr-only" id="cam-title" tabindex="-1">Prise de la photo</h2>
+  <video id="vid" playsinline muted autoplay aria-hidden="true"></video>
   <div class="cam-top">
-    <button id="btn-close">✕ Fermer</button>
-    <div class="hint" id="hint">Aligne ta tête sous le toupet</div>
-    <button id="btn-flip" aria-label="Changer de caméra">⟲</button>
+    <button id="btn-close"><span aria-hidden="true">✕</span> Fermer</button>
+    <div class="hint" id="hint" role="status">Cadre ton visage</div>
+    <button id="btn-flip" aria-label="Changer de caméra"><span aria-hidden="true">⟲</span></button>
   </div>
   <div class="stage">
-    <canvas id="preview" width="540" height="675"></canvas>
-    <div class="overlay" id="loading"><div><div class="spin"></div><p id="loading-text">Chargement du détourage…</p></div></div>
-    <div class="overlay" id="count" aria-live="assertive" hidden></div>
+    <canvas id="preview" width="540" height="675" role="img" aria-label="Aperçu de ta photo avec la moustache"></canvas>
+    <div class="overlay" id="loading"><div><div class="spin"></div><p id="loading-text">Préparation de la photo…</p></div></div>
+    <div class="overlay" id="count" aria-live="polite" hidden></div>
     <div class="overlay" id="flash"></div>
-    <div class="overlay" id="cam-error" hidden><p id="cam-error-text"></p><button id="btn-err-file">Prendre une photo</button><button id="btn-err-retry" hidden>Réessayer</button><button id="btn-err-continue" hidden>Continuer sans détourage</button></div>
+    <div class="overlay" id="cam-error" role="alert" hidden><p id="cam-error-text"></p><button id="btn-err-file">Prendre une photo</button><button id="btn-err-retry" hidden>Réessayer</button><button id="btn-err-continue" hidden>Continuer quand même</button></div>
   </div>
   <div class="cam-bottom">
-    <div class="carousel" id="carousel" role="group" aria-label="Choix de la moustache"></div>
-    <details id="adjust" open>
-      <summary>Ajuster ▾</summary>
+    <div class="carousel" id="carousel" role="radiogroup" aria-label="Choix de la moustache"></div>
+    <details id="adjust">
+      <summary>Ajuster la taille et la position</summary>
       <div class="sliders">
-        <label>Taille moustache<input type="range" id="sl-mscale" min="0.6" max="1.6" step="0.02" value="1"></label>
-        <label>Hauteur moustache<input type="range" id="sl-my" min="-40" max="40" step="1" value="0"></label>
-        <label>Zoom portrait<input type="range" id="sl-zoom" min="0.8" max="1.3" step="0.02" value="1"></label>
+        <label><span>Taille de la moustache <output id="o-mscale">100 %</output></span><input type="range" id="sl-mscale" min="0.6" max="1.6" step="0.02" value="1"></label>
+        <label><span>Hauteur de la moustache <output id="o-my">0</output></span><input type="range" id="sl-my" min="-40" max="40" step="1" value="0"></label>
+        <label><span>Zoom du portrait <output id="o-zoom">100 %</output></span><input type="range" id="sl-zoom" min="0.8" max="1.3" step="0.02" value="1"></label>
       </div>
     </details>
+    <p class="privacy"><span aria-hidden="true">🔒</span> Ta photo reste sur ton téléphone : elle n'est envoyée nulle part.</p>
     <div class="shutter-row">
-      <button class="round" id="btn-gallery" title="Utiliser une photo de la galerie">Galerie</button>
+      <button class="round" id="btn-gallery" aria-label="Choisir une photo dans la galerie">Galerie</button>
       <input type="file" id="file" accept="image/*" hidden>
       <button class="shutter" id="btn-shutter" aria-label="Prendre la photo"><span></span></button>
-      <button class="round" id="btn-timer" aria-pressed="false">Minuteur<br>off</button>
+      <button class="round" id="btn-timer" aria-pressed="false" aria-label="Minuteur de 3 secondes"><span aria-hidden="true" id="timer-txt">Minuteur<br>off</span></button>
     </div>
   </div>
 </section>
 
 <!-- ============ RESULTAT ============ -->
 <main id="s-result" hidden>
-  <h1 class="sr-only">Ton portrait Movember</h1>
+  <h1 class="sr-only" id="res-title" tabindex="-1">Ton portrait Movember est prêt</h1>
   <div class="res-card">
     <img id="res-img" alt="Ton portrait Movember">
-    <div class="res-meta"><b id="res-name"></b><small>Nous Nours • Movember 2026</small></div>
+    <div class="res-meta"><b id="res-name"></b><small>Nous Nours · Movember 2026</small></div>
   </div>
-  <p class="don"><a href="https://fr.movember.com" target="_blank" rel="noopener">Faire un don sur fr.movember.com</a></p>
-  <div class="row2">
-    <button class="btn" id="btn-retake">Refaire</button>
-    <button class="btn w" id="btn-dl">Télécharger</button>
-  </div>
+  <p class="don"><a href="https://fr.movember.com" target="_blank" rel="noopener noreferrer">Faire un don sur fr.movember.com</a></p>
   <div class="dl-list" id="dl-list" hidden>
-    <p>Partage direct indisponible ici. Télécharge les images une par une, puis poste-les en carrousel (la légende est copiée) :</p>
+    <p>Le partage direct n'est pas disponible ici. Enregistre les images une par une, puis poste-les en carrousel (la légende est copiée) :</p>
     <button class="btn" data-dl="0">Ma photo</button><button class="btn" data-dl="1">Movember, c'est quoi ?</button><button class="btn" data-dl="2">Tombola 42 Bar</button>
   </div>
-  <div class="share-nets" aria-hidden="true">
-    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="#fff" stroke="none"/></svg>
-    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.4 2.6 2 4.2 5 4.5"/></svg>
-    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M13.5 20.5V13h2.5M13.5 13h-2m2 0V10c0-1.4.8-2 2-2h.5"/></svg>
-  </div>
-  <button class="share" id="btn-share">Partager<small>Choisis ensuite Instagram, TikTok ou Facebook dans la liste de ton téléphone</small></button>
 
   <div class="packbox">
     <h2 class="fr">Le pack à poster en carrousel</h2>
     <p>1. Ton portrait moustachu · 2. Movember, c'est quoi ? · 3. Super gros lot tombola 42 Bar.</p>
     <div class="pack3">
-      <img id="pk1" alt="Portrait"><img data-asset="explications" alt="Explications"><img data-asset="affiche" alt="Tombola">
+      <img id="pk1" alt="Ton portrait"><img data-asset="explications" alt="Image 2 : Movember, c'est quoi ?"><img data-asset="affiche" alt="Image 3 : tombola au 42 Bar">
     </div>
     <div class="cap">
       <div id="cap-text"></div>
-      <label class="cap-tags"><input type="checkbox" id="cap-tags" checked> Ajouter #lgbt #Bear</label>
+      <label class="cap-tags"><input type="checkbox" id="cap-tags" checked> <span>Ajouter #lgbt #Bear</span></label>
       <button id="btn-cap">Copier la légende</button>
       <p class="cap-warn">Tu publies sous ta responsabilité. Ne publie pas la photo d'une autre personne sans son accord.</p>
     </div>
   </div>
-  <footer>© Association Bear LGBTQIA+ NousNours 64 / 40 - <a href="https://www.nousnours.fr" target="_blank" rel="noopener">www.nousnours.fr</a><br>Évènement caritatif pour la fondation MOVEMBER <a href="https://fr.movember.com" target="_blank" rel="noopener">fr.movember.com</a></footer>
+  <footer>© Association Bear LGBTQIA+ NousNours 64 / 40 - <a href="https://www.nousnours.fr" target="_blank" rel="noopener noreferrer">www.nousnours.fr</a><br>Évènement caritatif pour la fondation Movember <a href="https://fr.movember.com" target="_blank" rel="noopener noreferrer">fr.movember.com</a></footer>
+  <div class="actions" role="group" aria-label="Actions sur ta photo">
+    <button class="share" id="btn-share">Partager</button>
+    <p class="share-hint">Dans le menu, choisis <strong>Instagram (Feed)</strong>, <strong>TikTok</strong> ou <strong>Facebook (Fil)</strong> : ta photo et la légende sont déjà prêtes, il ne reste qu'à publier.</p>
+    <div class="row2">
+      <button class="btn" id="btn-retake">Refaire</button>
+      <button class="btn w" id="btn-dl">Enregistrer l'image</button>
+    </div>
+  </div>
 </main>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image en plein écran" hidden>
+  <button class="lb-close" id="lb-close">Fermer l'image</button>
+  <img id="lb-img" alt="">
+</div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 

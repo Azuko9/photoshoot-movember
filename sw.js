@@ -1,7 +1,7 @@
 /* Service worker : l'appli (page, styles, script, polices, images) est mise en cache dès la première visite ;
    les fichiers lourds de vendor/ (détourage, visage) le sont à leur premier usage, donc après la première ouverture de la caméra.
    Stratégie « cache d'abord ». POUR PUBLIER UNE MISE À JOUR : changer VERSION (sinon les visiteurs gardent l'ancienne). */
-const VERSION = 'v3';
+const VERSION = 'v32';
 const CACHE = 'movember-' + VERSION;
 const COEUR = [
   "./",
@@ -9,6 +9,10 @@ const COEUR = [
   "style.css",
   "app.js",
   "confidentialite.html",
+  "manifest.webmanifest",
+  "assets/favicon-32.png",
+  "assets/apple-touch-icon.png",
+  "assets/icon-192.png",
   "fonts/fredoka-latin-500.woff2",
   "fonts/fredoka-latin-600.woff2",
   "fonts/fredoka-latin-700.woff2",
@@ -22,6 +26,7 @@ const COEUR = [
   "assets/logo.webp",
   "assets/m_bearnaise.webp",
   "assets/m_classique.webp",
+  "assets/logo42.webp",
   "assets/m_fluours.webp",
   "assets/m_mourstache.webp",
   "assets/m_oursonne.webp",
