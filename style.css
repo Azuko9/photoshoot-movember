@@ -166,5 +166,4 @@ h1.hero-h1{font:inherit;margin:0}
 .card i{display:none}.card b{min-height:0}
 #s-camera[data-mode=live] #adjust{display:none}
 #s-camera[data-mode=photo] #btn-gallery,#s-camera[data-mode=photo] #btn-timer,#s-camera[data-mode=photo] #btn-flip{visibility:hidden}
-.share-menu{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
-.share-menu button{min-height:48px;border-radius:14px;font:600 15px/1 inherit;background:#fff;color:#000;border:2px solid #000}
+.share-nets{display:flex;justify-content:center;gap:22px;margin:10px 0 4px}

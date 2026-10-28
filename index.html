@@ -147,13 +147,12 @@
     <p>Partage direct indisponible ici. Télécharge les images une par une, puis poste-les en carrousel (la légende est copiée) :</p>
     <button class="btn" data-dl="0">Ma photo</button><button class="btn" data-dl="1">Movember, c'est quoi ?</button><button class="btn" data-dl="2">Tombola 42 Bar</button>
   </div>
-  <button class="share" id="btn-share" aria-expanded="false" aria-controls="share-menu">Partager mon Movember<small>Instagram, TikTok, Facebook ou un lien</small></button>
-  <div class="share-menu" id="share-menu" hidden>
-    <button data-net="Instagram">Instagram</button>
-    <button data-net="TikTok">TikTok</button>
-    <button data-net="Facebook">Facebook</button>
-    <button data-net="lien">Copier le lien</button>
+  <div class="share-nets" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#fff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="#fff" stroke="none"/></svg>
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M14 3v11.5a3.5 3.5 0 1 1-3.5-3.5"/><path d="M14 3c.4 2.6 2 4.2 5 4.5"/></svg>
+    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M13.5 20.5V13h2.5M13.5 13h-2m2 0V10c0-1.4.8-2 2-2h.5"/></svg>
   </div>
+  <button class="share" id="btn-share">Partager<small>Choisis ensuite Instagram, TikTok ou Facebook dans la liste de ton téléphone</small></button>
 
   <div class="packbox">
     <h2 class="fr">Le pack à poster en carrousel</h2>

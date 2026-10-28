@@ -512,24 +512,14 @@ $('#cap-tags').onchange = () => { $('#cap-text').textContent = caption(); };
 $('#btn-dl').onclick = () => { download(new File([S.blob],'nousnours-movember-moi.jpg',{type:'image/jpeg'})); };
 $('#btn-cap').onclick = async () => { if(await copyCaption()) toast('Légende copiée ✔'); else { selectCaption(); toast('Copie impossible : la légende est sélectionnée, copie-la à la main.', 4500); } };
 $('#btn-retake').onclick = startCamera;
-$('#btn-share').onclick = () => { const m = $('#share-menu'); m.hidden = !m.hidden; $('#btn-share').setAttribute('aria-expanded', String(!m.hidden)); };
-document.querySelectorAll('#share-menu [data-net]').forEach(b => b.onclick = async () => {
-  const net = b.dataset.net;
-  if(net === 'lien'){
-    try{ await navigator.clipboard.writeText(location.origin + location.pathname.replace(/[^/]*$/, '')); toast('Lien du site copié 🐻'); }
-    catch(e){ toast(location.href, 6000); }
-    return;
-  }
-  await shareFiles(net);
-});
-async function shareFiles(net){
+$('#btn-share').onclick = () => shareFiles();
+async function shareFiles(){
   if(!S.files){ toast('Préparation des images…'); await prepareFiles(); }
   if(!S.files){ toast("Les images n'ont pas pu être préparées. Réessaie.", 4500); return; }
   const data = {files:S.files, title:'Movember · Nous Nours', text:caption()};
   if(navigator.canShare && navigator.canShare({files:S.files})){
     copyCaption();                                         // Instagram ignore le texte : on le met au presse-papier
-    toast('Choisis ' + net + ' dans la liste, puis colle la légende 🐻', 4500);
-    try{ await navigator.share(data); toast("Légende copiée : colle-la dans ta publication 🐻"); }
+        try{ await navigator.share(data); toast("Légende copiée : colle-la dans ta publication 🐻"); }
     catch(e){ if(e.name!=='AbortError'){ console.warn(e); fallbackAll(); } }
   }else fallbackAll();
 }
