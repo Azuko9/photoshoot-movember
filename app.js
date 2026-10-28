@@ -162,6 +162,14 @@ function initModels(){
     return false;
   })();
 }
+function camMessage(err){
+  const n = err && err.name;
+  if(n==='NotAllowedError' || n==='SecurityError') return "La caméra est refusée. Autorise-la dans les réglages de ton navigateur, ou choisis une photo.";
+  if(n==='NotFoundError' || n==='OverconstrainedError') return "Aucune caméra trouvée sur cet appareil. Choisis une photo à la place.";
+  if(n==='NotReadableError' || n==='AbortError') return "La caméra est utilisée par une autre application. Ferme-la puis réessaie, ou choisis une photo.";
+  if(!window.isSecureContext) return "La caméra demande une connexion sécurisée (HTTPS). Choisis une photo à la place.";
+  return "Impossible d'accéder à la caméra. Choisis une photo à la place.";
+}
 function showError(text, boutons){                         // boutons : ids à afficher parmi file, retry, continue
   $('#cam-error-text').textContent = text;
   for(const id of ['file','retry','continue']) $('#btn-err-'+id).hidden = !boutons.includes(id);
@@ -199,7 +207,7 @@ async function startCamera(){
       if(stale()) return;
       S.camDenied = err && (err.name==='NotAllowedError' || err.name==='SecurityError');
       $('#loading').hidden = true;
-      showError("Impossible d'accéder à la caméra. Autorise-la dans ton navigateur, ou choisis une photo dans ta galerie.", ['file']);
+      showError(camMessage(err), ['file']);
       S.src = null;
       S.raf = requestAnimationFrame(tick);
       return;                                                           // caméra refusée : les modèles ne se chargent que si on choisit une photo
@@ -217,6 +225,16 @@ function stopCamera(){
 $('#btn-flip').onclick = () => { S.facing = S.facing==='user' ? 'environment' : 'user'; startCamera(); };
 $('#btn-close').onclick = () => { stopCamera(); show('landing'); };
 $('#btn-start').onclick = startCamera;
+
+/* navigateurs intégrés (Instagram, Facebook, TikTok) : la caméra y est souvent bloquée → on propose l'appareil photo natif ou un navigateur normal */
+const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|TikTok|musical_ly|Snapchat/i.test(navigator.userAgent);
+const NO_CAM = !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia;
+if(IN_APP || NO_CAM){
+  $('#iab-text').textContent = IN_APP
+    ? "Pour prendre la photo, ouvre ce lien dans Safari ou Chrome (menu ⋯ → Ouvrir dans le navigateur). Tu peux aussi choisir une photo, ou en prendre une avec l'appareil photo de ton téléphone :"
+    : "La caméra n'est pas disponible dans ce navigateur (ou la page n'est pas en HTTPS). Choisis une photo, ou prends-en une avec l'appareil photo de ton téléphone :";
+  $('#iab').hidden = false;
+}
 $('#btn-err-file').onclick = () => $('#file').click();
 $('#btn-err-continue').onclick = () => { $('#cam-error').hidden = true; };
 $('#btn-err-retry').onclick = () => {
@@ -243,19 +261,21 @@ async function readPhoto(f){
     finally{ URL.revokeObjectURL(u2); }
   } finally { URL.revokeObjectURL(url); }
 }
-$('#file').onchange = async e => {
+const onPhoto = async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
   let img;
   try{ img = await readPhoto(f); }
   catch(err){ toast("Cette photo ne peut pas être lue (essaie un JPEG ou PNG).", 5000); return; }   // l'écran reste dans son état précédent
   const my = ++S.camGen;                                   // annule toute caméra en cours de démarrage
   cancelAnimationFrame(S.raf); stopStream(); clearCountdown(); setCamControls(false);
+  show('camera');                                          // depuis l'accueil (photo choisie sans passer par la caméra)
   $('#cam-error').hidden = true; $('#loading').hidden = false; $('#loading-text').textContent = 'Chargement du détourage…';
   S.src = img; S.mirror = false; S.staticMode = true; S.hasMask = false; S.tr = null; S.lm = null; S.m = null; S.camDenied = false;
   S.vw = img.naturalWidth; S.vh = img.naturalHeight;
   await assetsReady;
   if(my === S.camGen) await finishStatic(my);
 };
+$('#file').onchange = onPhoto; $('#file-cam').onchange = onPhoto;
 async function finishStatic(my){
   const ok = await initModels(); if(my !== S.camGen) return;
   await processOnce(); if(my !== S.camGen) return;
@@ -439,7 +459,7 @@ const dataToFile = async (data, name, type) => {
 };
 async function prepareFiles(){
   const my = ++S.prepGen, blob = S.blob;                   // un résultat périmé n'écrase pas S.files
-  S.files = null;
+  S.files = null; $('#dl-list').hidden = true;
   try{
     const files = [
       new File([blob], 'nousnours-movember-moi.jpg', {type:'image/jpeg'}),
@@ -466,11 +486,12 @@ $('#btn-share').onclick = async () => {
     catch(e){ if(e.name!=='AbortError'){ console.warn(e); fallbackAll(); } }
   }else fallbackAll();
 };
-async function fallbackAll(){
-  await copyCaption();
-  S.files.forEach((f,i) => setTimeout(() => download(f), i*600));
-  toast("Partage direct indisponible ici : les 3 images sont téléchargées et la légende est copiée. Poste-les en carrousel !", 6500);
+async function fallbackAll(){                              // pas de téléchargements en rafale : un bouton par image
+  const ok = await copyCaption();
+  $('#dl-list').hidden = false;
+  toast(ok ? "Partage direct indisponible ici : la légende est copiée, télécharge les images ci-dessous." : "Partage direct indisponible ici : télécharge les images ci-dessous.", 5500);
 }
+document.querySelectorAll('#dl-list [data-dl]').forEach(b => b.onclick = () => { if(S.files) download(S.files[+b.dataset.dl]); });
 
 /* sécurité : on coupe la caméra si l'onglet passe en arrière-plan ; au retour on la relance seulement si elle tournait (ou démarrait) et n'a pas été refusée */
 document.addEventListener('visibilitychange', () => {

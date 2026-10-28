@@ -69,6 +69,11 @@
     </div>
 
     <div class="feat"><span class="f1">PARTICIPONS</span><span class="f2">PARTAGONS</span><span class="f3">SOYONS SOLIDAIRE</span></div>
+    <div class="iab" id="iab" hidden>
+      <p id="iab-text"></p>
+      <label class="btn w iab-btn" for="file-cam">Choisir une photo</label>
+      <input type="file" id="file-cam" accept="image/*" capture="user" hidden>
+    </div>
     <div class="tiles" id="tiles"></div>
     <button class="cta" id="btn-start">Lancer le Photoshoot 📸</button>
     <p class="cta-note">Fonctionne sur iPhone &amp; Android • Aucune photo envoyée</p>
@@ -134,6 +139,10 @@
   <div class="row2">
     <button class="btn" id="btn-retake">Refaire</button>
     <button class="btn w" id="btn-dl">Télécharger</button>
+  </div>
+  <div class="dl-list" id="dl-list" hidden>
+    <p>Partage direct indisponible ici. Télécharge les images une par une, puis poste-les en carrousel (la légende est copiée) :</p>
+    <button class="btn" data-dl="0">Ma photo</button><button class="btn" data-dl="1">Movember, c'est quoi ?</button><button class="btn" data-dl="2">Tombola 42 Bar</button>
   </div>
   <button class="share" id="btn-share">Partager mon Movember<small>Ta photo + les 2 images infos, vers Insta, Facebook, WhatsApp…</small></button>
 

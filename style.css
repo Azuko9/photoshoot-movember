@@ -146,3 +146,8 @@ details#adjust summary::-webkit-details-marker{display:none}
 .legal{max-width:640px;margin:0 auto;padding:24px 16px 48px;line-height:1.55;font-size:15px;color:#102a43}
 .legal h1{font-size:24px;margin:0 0 12px}.legal h2{font-size:17px;margin:22px 0 6px}
 .legal a{color:#136aa3}
+
+.iab{margin:14px auto;max-width:520px;padding:12px 14px;border-radius:14px;background:#fff3cd;color:#102a43;font-size:14px;line-height:1.45;text-align:center}
+.iab-btn{display:inline-flex;align-items:center;justify-content:center;margin-top:8px;padding:0 18px;min-height:44px;cursor:pointer}
+.dl-list{margin:12px 0;padding:12px;border-radius:14px;background:#fff3cd;color:#102a43;font-size:14px;line-height:1.45}
+.dl-list .btn{margin:6px 6px 0 0}
