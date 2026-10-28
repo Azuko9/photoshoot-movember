@@ -69,7 +69,7 @@ const S = {
   blob:null, files:null, url:null,
   camGen:0,                       // invalide tout démarrage de caméra en cours (Fermer, ⟲, galerie, onglet masqué)
   camDenied:false, resume:false, countId:0, capturing:false,
-  modelsPromise:null, lastAI:0, settle:0, hintTxt:'', prepGen:0,
+  modelsPromise:null, fmInit:null, fmReady:false, lastAI:0, settle:0, hintTxt:'', prepGen:0,
 };
 const pctx = S.person.getContext('2d', {willReadFrequently:false});
 const small = document.createElement('canvas'); const sctx = small.getContext('2d', {willReadFrequently:true});
@@ -144,7 +144,8 @@ function initModels(){
       try{
         await withTimeout(buildModels(h), 20000);
         S.seg = h.seg; S.fm = h.fm; S.modelsReady = true;
-        S.fm.initialize().catch(()=>{ S.fm = null; });   // le visage est un plus : sans lui, moustache placée au jugé
+        const fm = S.fm;                                   // le visage est un plus : sans lui, moustache placée au jugé
+        S.fmInit = fm.initialize().then(() => { S.fmReady = true; }).catch(() => { if(S.fm === fm) S.fm = null; });   // rien n'est envoyé au visage avant la fin
         return true;
       }catch(err){
         console.warn(err);
@@ -219,32 +220,23 @@ $('#btn-err-retry').onclick = () => {
   else startCamera();
 };
 
-// Lit une photo de la galerie : refuse ce que le navigateur ne sait pas décoder, réduit à 2048 px au plus.
+// Lit une photo de la galerie : refuse ce que le navigateur ne sait pas décoder ; au-delà de 2048 px sur le grand côté,
+// la réduit (PNG sans perte). Sinon l'image d'origine est gardée telle quelle (aucun ré-encodage).
 async function readPhoto(f){
   const url = URL.createObjectURL(f);
   try{
     const img = await load(url);
     if(!img.naturalWidth) throw new Error('illisible');
     const k = Math.min(1, 2048 / Math.max(img.naturalWidth, img.naturalHeight));
-    if(k === 1) return await copyOf(img);
+    if(k === 1) return img;                                // décodée : elle reste utilisable après la révocation de l'adresse
     const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth*k); c.height = Math.round(img.naturalHeight*k);
     c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .92));
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
     if(!blob) throw new Error('réduction impossible');
-    const small2 = URL.createObjectURL(blob);
-    try{ const r = await load(small2); if(!r.naturalWidth) throw new Error('illisible'); return await copyOf(r); }
-    finally{ URL.revokeObjectURL(small2); }
+    const u2 = URL.createObjectURL(blob);
+    try{ const r = await load(u2); if(!r.naturalWidth) throw new Error('illisible'); return r; }
+    finally{ URL.revokeObjectURL(u2); }
   } finally { URL.revokeObjectURL(url); }
-}
-// L'image doit rester utilisable après la révocation de son adresse : on la recopie dans un canvas.
-async function copyOf(img){
-  const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
-  c.getContext('2d').drawImage(img, 0, 0);
-  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .95));
-  if(!blob) throw new Error('copie impossible');
-  const u = URL.createObjectURL(blob);
-  try{ const r = await load(u); if(!r.naturalWidth) throw new Error('illisible'); return r; }
-  finally{ URL.revokeObjectURL(u); }
 }
 $('#file').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if(!f) return;
@@ -268,7 +260,8 @@ async function finishStatic(my){
   cancelAnimationFrame(S.raf); S.raf = requestAnimationFrame(tick);
 }
 async function processOnce(){
-  if(S.fm){ for(let i=0;i<2;i++){ try{ await withTimeout(S.fm.send({image:S.src}), 10000); }catch(e){} } }
+  if(S.fm){ try{ await withTimeout(S.fmInit, 10000); }catch(e){} }
+  if(S.fm && S.fmReady){ for(let i=0;i<2;i++){ try{ await withTimeout(S.fm.send({image:S.src}), 10000); }catch(e){} } }
   if(S.seg){ try{ await withTimeout(S.seg.send({image:S.src}), 10000); }catch(e){ fallbackPerson(); } }
   else fallbackPerson();
 }
@@ -331,7 +324,7 @@ async function tick(){
       S.busy = true; S.lastAI = now;
       try{
         if(S.seg){ await withTimeout(S.seg.send({image:S.src}), 3000); } else fallbackPerson();
-        if(S.fm && S.frame%3===0) await withTimeout(S.fm.send({image:S.src}), 3000);
+        if(S.fm && S.fmReady && S.frame%3===0) await withTimeout(S.fm.send({image:S.src}), 3000);
       }catch(e){}
       finally{ S.busy = false; S.frame++; }
     }

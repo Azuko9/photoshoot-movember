@@ -19,3 +19,4 @@ Fichiers hébergés dans `vendor/mediapipe/`, copiés sans modification depuis l
 | `@mediapipe/face_mesh` | 0.4.1633559619 | `vendor/mediapipe/face_mesh/` |
 
 Texte de la licence : https://www.apache.org/licenses/LICENSE-2.0
+
