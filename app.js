@@ -1,27 +1,30 @@
 /* Chemins des images (extraites de l'ancien objet ASSETS en base64, voir scripts/extraire-assets.mjs) */
 const ASSETS = {
-  "m_shebear": "assets/m_shebear.png",
-  "s2": "assets/s2.jpg",
-  "s4": "assets/s4.jpg",
-  "titre": "assets/titre.png",
-  "infos": "assets/infos.png",
-  "m_resina": "assets/m_resina.png",
-  "s5": "assets/s5.jpg",
-  "m_pintxours": "assets/m_pintxours.png",
-  "s3": "assets/s3.jpg",
-  "m_rainbow": "assets/m_rainbow.png",
-  "m_mourstache": "assets/m_mourstache.png",
-  "explications": "assets/explications.jpg",
-  "m_oursonne": "assets/m_oursonne.png",
-  "affiche": "assets/affiche.jpg",
-  "m_fluours": "assets/m_fluours.png",
-  "fond": "assets/fond.jpg",
-  "empreinte": "assets/empreinte.png",
-  "logo": "assets/logo.png",
-  "s1": "assets/s1.jpg",
-  "m_classique": "assets/m_classique.png",
-  "m_bearnaise": "assets/m_bearnaise.png"
+  "m_shebear": "assets/m_shebear.webp",
+  "s2": "assets/s2.webp",
+  "s4": "assets/s4.webp",
+  "titre": "assets/titre.webp",
+  "infos": "assets/infos.webp",
+  "m_resina": "assets/m_resina.webp",
+  "s5": "assets/s5.webp",
+  "m_pintxours": "assets/m_pintxours.webp",
+  "s3": "assets/s3.webp",
+  "m_rainbow": "assets/m_rainbow.webp",
+  "m_mourstache": "assets/m_mourstache.webp",
+  "explications": "assets/explications.webp",
+  "m_oursonne": "assets/m_oursonne.webp",
+  "affiche": "assets/affiche.webp",
+  "m_fluours": "assets/m_fluours.webp",
+  "fond": "assets/fond.webp",
+  "empreinte": "assets/empreinte.webp",
+  "logo": "assets/logo.webp",
+  "s1": "assets/s1.webp",
+  "m_classique": "assets/m_classique.webp",
+  "m_bearnaise": "assets/m_bearnaise.webp"
 };
+
+// JPEG partagés tels quels (Instagram et les messageries veulent du JPEG ; l'affichage utilise les WebP ci-dessus)
+const SHARE = { explications: "assets/explications.jpg", affiche: "assets/affiche.jpg" };
 
 (() => {
 'use strict';
@@ -440,8 +443,8 @@ async function prepareFiles(){
   try{
     const files = [
       new File([blob], 'nousnours-movember-moi.jpg', {type:'image/jpeg'}),
-      await dataToFile(ASSETS.explications, 'nousnours-movember-explications.jpg', 'image/jpeg'),
-      await dataToFile(ASSETS.affiche, 'nousnours-movember-tombola-42bar.jpg', 'image/jpeg'),
+      await dataToFile(SHARE.explications, 'nousnours-movember-explications.jpg', 'image/jpeg'),
+      await dataToFile(SHARE.affiche, 'nousnours-movember-tombola-42bar.jpg', 'image/jpeg'),
     ];
     if(my === S.prepGen) S.files = files;
   }catch(err){ console.warn(err); }
@@ -477,4 +480,9 @@ document.addEventListener('visibilitychange', () => {
     S.resume = false; startCamera();
   }
 });
+
+/* hors ligne : service worker (seulement en HTTPS ou sur localhost) */
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')){
+  navigator.serviceWorker.register('sw.js').catch(e => console.warn('sw', e));
+}
 })();
