@@ -44,7 +44,9 @@ const MUSTACHES = [
   {id:'fluours',   name:'La FluOURS !',          vibe:'club et friendly',            wf:1.95, ay:.38},
 ];
 const TILES = ['rainbow','pintxours','classique','mourstache'];
-const CAPTION = "Je porte la moustache pour #Movember avec l'association Bear @nousnours64.40 🐻🥸 Participez à la prévention de la santé masculine et faites un don sur fr.movember.com. Soirée caritative dimanche 22 novembre dès 18h au 42 Bar, 42 rue Pannecau, Bayonne : tombola, entrée gratuite, buffet offert ! #Movember #NousNours #Bayonne #lgbt #Bear";
+const CAPTION_BASE = "Je porte la moustache pour #Movember avec l'association Bear @nousnours64.40 🐻🥸 Participez à la prévention de la santé masculine et faites un don sur fr.movember.com. Soirée caritative dimanche 22 novembre dès 18h au 42 Bar, 42 rue Pannecau, Bayonne : tombola, entrée gratuite, buffet offert ! #Movember #NousNours #Bayonne";
+const TAGS = " #lgbt #Bear";                               // hashtags ajoutés par défaut, décochables avant le partage
+const caption = () => CAPTION_BASE + ($('#cap-tags').checked ? TAGS : '');
 
 /* ---------- assets ---------- */
 document.querySelectorAll('img[data-asset]').forEach(i => i.src = ASSETS[i.dataset.asset]);
@@ -418,7 +420,7 @@ async function capture(){
     S.blob = blob; S.url = URL.createObjectURL(blob);
     stopCamera();
     $('#res-img').src = S.url; $('#pk1').src = S.url; $('#res-name').textContent = MUSTACHES[S.mi].name;
-    $('#cap-text').textContent = CAPTION;
+    $('#cap-text').textContent = caption();
     show('result');
     if(ancienne) URL.revokeObjectURL(ancienne);            // révoquée seulement une fois la nouvelle affichée
     prepareFiles();
@@ -445,14 +447,16 @@ async function prepareFiles(){
   }catch(err){ console.warn(err); }
 }
 function download(file){ const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); }
-async function copyCaption(){ try{ await navigator.clipboard.writeText(CAPTION); return true; }catch(e){ return false; } }
+async function copyCaption(){ try{ await navigator.clipboard.writeText(caption()); return true; }catch(e){ return false; } }
+function selectCaption(){ const r = document.createRange(); r.selectNodeContents($('#cap-text')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }
+$('#cap-tags').onchange = () => { $('#cap-text').textContent = caption(); };
 $('#btn-dl').onclick = () => { download(new File([S.blob],'nousnours-movember-moi.jpg',{type:'image/jpeg'})); };
-$('#btn-cap').onclick = async () => toast(await copyCaption() ? 'Légende copiée ✔' : 'Copie impossible : sélectionne le texte à la main.');
+$('#btn-cap').onclick = async () => { if(await copyCaption()) toast('Légende copiée ✔'); else { selectCaption(); toast('Copie impossible : la légende est sélectionnée, copie-la à la main.', 4500); } };
 $('#btn-retake').onclick = startCamera;
 $('#btn-share').onclick = async () => {
   if(!S.files){ toast('Préparation des images…'); await prepareFiles(); }
   if(!S.files){ toast("Les images n'ont pas pu être préparées. Réessaie.", 4500); return; }
-  const data = {files:S.files, title:'Movember · Nous Nours', text:CAPTION};
+  const data = {files:S.files, title:'Movember · Nous Nours', text:caption()};
   if(navigator.canShare && navigator.canShare({files:S.files})){
     copyCaption();                                         // Instagram ignore le texte : on le met au presse-papier
     try{ await navigator.share(data); toast("Légende copiée : colle-la dans ta publication 🐻"); }
