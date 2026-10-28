@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'unsafe-eval'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1e8bd0">
+<meta name="theme-color" content="#1976b5">
 <title>Movember · Nous Nours · Photoshoot</title>
 <meta name="description" content="Movember avec Nous Nours : prends-toi en photo avec une moustache de bear et partage-la. Ta photo reste sur ton téléphone.">
 <meta property="og:type" content="website">
@@ -44,15 +44,15 @@
     <div class="hero-grid">
       <div>
         <img class="hero-logo" data-asset="logo" alt="Nous Nours – Asso Bear LGBTQIA+ 64-40">
-        <img class="hero-title" data-asset="titre" alt="Movember">
+        <h1 class="hero-h1"><img class="hero-title" data-asset="titre" alt="Movember"></h1>
       </div>
       <div class="frame-wrap">
         <div class="frame" id="slides" aria-label="Photos des participants Movember">
-          <img class="slide on" data-asset="s1" alt="Participant Movember 1">
-          <img class="slide" data-asset="s2" alt="Participant Movember 2">
-          <img class="slide" data-asset="s3" alt="Participant Movember 3">
-          <img class="slide" data-asset="s4" alt="Participant Movember 4">
-          <img class="slide" data-asset="s5" alt="Participant Movember 5">
+          <img class="slide on" data-asset="s1" alt="Portrait d'un participant Movember avec sa moustache de bear (photo 1 sur 5)">
+          <img class="slide" data-asset="s2" alt="Portrait d'un participant Movember avec sa moustache de bear (photo 2 sur 5)">
+          <img class="slide" data-asset="s3" alt="Portrait d'un participant Movember avec sa moustache de bear (photo 3 sur 5)">
+          <img class="slide" data-asset="s4" alt="Portrait d'un participant Movember avec sa moustache de bear (photo 4 sur 5)">
+          <img class="slide" data-asset="s5" alt="Portrait d'un participant Movember avec sa moustache de bear (photo 5 sur 5)">
         </div>
         <span class="frame-tag">Fun et Solidaire</span>
       </div>
@@ -90,14 +90,15 @@
 
   <section class="pack">
     <img loading="lazy" data-asset="explications" alt="Movember, c'est quoi ?">
-    <img loading="lazy" data-asset="affiche" alt="Super gros lot surprise – tombola 42 Bar">
+    <img loading="lazy" data-asset="affiche" alt="Affiche : super gros lot surprise, tombola au 42 Bar">
+    <p class="sr-only">Soirée caritative dimanche 22 novembre dès 18h au 42 Bar, 42 rue Pannecau, Bayonne : tombola, entrée gratuite, buffet offert. Movember du 1er au 30 novembre : fr.movember.com.</p>
   </section>
 
   <footer>© Association Bear LGBTQIA+ NousNours 64 / 40 - <a href="https://www.nousnours.fr" target="_blank" rel="noopener">www.nousnours.fr</a><br>Évènement caritatif pour la fondation MOVEMBER <a href="https://fr.movember.com" target="_blank" rel="noopener">fr.movember.com</a></footer>
 </main>
 
 <!-- ============ CAMERA ============ -->
-<section class="screen" id="s-camera" hidden>
+<section class="screen" id="s-camera" aria-label="Prise de la photo" hidden>
   <video id="vid" playsinline muted autoplay></video>
   <div class="cam-top">
     <button id="btn-close">✕ Fermer</button>
@@ -107,12 +108,12 @@
   <div class="stage">
     <canvas id="preview" width="540" height="675"></canvas>
     <div class="overlay" id="loading"><div><div class="spin"></div><p id="loading-text">Chargement du détourage…</p></div></div>
-    <div class="overlay" id="count" hidden></div>
+    <div class="overlay" id="count" aria-live="assertive" hidden></div>
     <div class="overlay" id="flash"></div>
     <div class="overlay" id="cam-error" hidden><p id="cam-error-text"></p><button id="btn-err-file">Choisir une photo</button><button id="btn-err-retry" hidden>Réessayer</button><button id="btn-err-continue" hidden>Continuer sans détourage</button></div>
   </div>
   <div class="cam-bottom">
-    <div class="carousel" id="carousel" role="listbox" aria-label="Choix de la moustache"></div>
+    <div class="carousel" id="carousel" role="group" aria-label="Choix de la moustache"></div>
     <details id="adjust" open>
       <summary>Ajuster ▾</summary>
       <div class="sliders">
@@ -122,7 +123,7 @@
       </div>
     </details>
     <div class="shutter-row">
-      <label class="round" for="file" title="Utiliser une photo de la galerie">Galerie</label>
+      <button class="round" id="btn-gallery" title="Utiliser une photo de la galerie">Galerie</button>
       <input type="file" id="file" accept="image/*" hidden>
       <button class="shutter" id="btn-shutter" aria-label="Prendre la photo"><span></span></button>
       <button class="round" id="btn-timer" aria-pressed="false">Minuteur<br>off</button>
@@ -132,6 +133,7 @@
 
 <!-- ============ RESULTAT ============ -->
 <main id="s-result" hidden>
+  <h1 class="sr-only">Ton portrait Movember</h1>
   <div class="res-card">
     <img id="res-img" alt="Ton portrait Movember">
     <div class="res-meta"><b id="res-name"></b><small>Nous Nours • Movember 2026</small></div>
@@ -147,7 +149,7 @@
   <button class="share" id="btn-share">Partager mon Movember<small>Ta photo + les 2 images infos, vers Insta, Facebook, WhatsApp…</small></button>
 
   <div class="packbox">
-    <h3 class="fr">Le pack à poster en carrousel</h3>
+    <h2 class="fr">Le pack à poster en carrousel</h2>
     <p>1. Ton portrait moustachu · 2. Movember, c'est quoi ? · 3. Super gros lot tombola 42 Bar.</p>
     <div class="pack3">
       <img id="pk1" alt="Portrait"><img data-asset="explications" alt="Explications"><img data-asset="affiche" alt="Tombola">

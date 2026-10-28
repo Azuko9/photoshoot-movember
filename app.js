@@ -105,12 +105,12 @@ const lerp = (a,b,t) => a + (b-a)*t;
 /* ---------- accueil / carrousel ---------- */
 (() => {                                                   // diaporama automatique de l'accueil
   const sl = [...document.querySelectorAll('#slides .slide')]; let n = 0;
-  if(sl.length < 2) return;
+  if(sl.length < 2 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;   // pas d'animation si l'utilisateur l'a demandé
   setInterval(() => { if(document.hidden || S.view!=='landing') return; sl[n].classList.remove('on'); n = (n+1) % sl.length; sl[n].classList.add('on'); }, 3200);
 })();
 $('#tiles').innerHTML = TILES.map(id => MUSTACHES.find(m => m.id===id)).map(m => `<div class="tile"><img src="${ASSETS['m_'+m.id]}" alt="${m.name}"></div>`).join('');
 const car = $('#carousel');
-car.innerHTML = MUSTACHES.map((m,i) => `<button class="card" role="option" data-i="${i}" aria-pressed="${i===S.mi}"><div class="im">${m.none ? '<span class="nf">🧔</span>' : `<img src="${ASSETS['m_'+m.id]}" alt="">`}</div><b>${m.name}</b><i>${m.vibe}</i></button>`).join('');
+car.innerHTML = MUSTACHES.map((m,i) => `<button class="card" data-i="${i}" aria-pressed="${i===S.mi}"><div class="im">${m.none ? '<span class="nf">🧔</span>' : `<img src="${ASSETS['m_'+m.id]}" alt="">`}</div><b>${m.name}</b><i>${m.vibe}</i></button>`).join('');
 car.addEventListener('click', e => {
   const b = e.target.closest('.card'); if(!b) return;
   S.mi = +b.dataset.i; touch();
@@ -235,6 +235,7 @@ if(IN_APP || NO_CAM){
     : "La caméra n'est pas disponible dans ce navigateur (ou la page n'est pas en HTTPS). Choisis une photo, ou prends-en une avec l'appareil photo de ton téléphone :";
   $('#iab').hidden = false;
 }
+$('#btn-gallery').onclick = () => $('#file').click();
 $('#btn-err-file').onclick = () => $('#file').click();
 $('#btn-err-continue').onclick = () => { $('#cam-error').hidden = true; };
 $('#btn-err-retry').onclick = () => {

@@ -2,7 +2,7 @@
 """Crée les icônes (favicon, apple-touch-icon, icône d'appli) à partir de l'empreinte et l'image d'aperçu de lien
 (og.jpg, 1200x630) à partir du logo et du titre. Usage : python3 scripts/creer-icones.py (racine du dépôt, Pillow requis)."""
 from PIL import Image
-BLEU = (30, 139, 208)
+BLEU = (25, 118, 181)
 emp = Image.open('assets/empreinte.webp').convert('RGBA')
 def icone(taille, nom):
     fond = Image.new('RGBA', (taille, taille), BLEU + (255,))
