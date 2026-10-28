@@ -254,3 +254,37 @@ footer{margin-top:18px}
 .share-hint{font-size:.8125rem;line-height:1.3;margin-top:4px}
 .row2 .btn{min-height:48px;padding:6px 8px}
 }
+
+/* ordinateur (>=1000px) : accueil en deux colonnes, étapes côte à côte, résultat en deux colonnes */
+@media (min-width:1000px){
+main{max-width:1120px}
+#s-landing .hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);column-gap:48px;padding:32px 36px}
+#s-landing .hero>*{grid-column:1;align-self:start}
+#s-landing .hero-pills{grid-row:1}
+#s-landing .hero-grid{grid-row:2}
+#s-landing .dates{grid-row:3}
+#s-landing .more{grid-row:4;justify-self:center;align-self:start}
+#s-landing .note{grid-row:5}
+#s-landing .feat{grid-column:2;grid-row:1;align-self:end;text-align:center}
+#s-landing .frame-wrap{grid-column:2;grid-row:2/span 3;width:min(100%,380px);margin:12px auto 0}
+#s-landing .cta{grid-column:2;grid-row:5;align-self:end;margin-top:0}
+#s-landing .dates,#s-landing .more{margin-top:12px}
+#s-landing .iab{grid-column:2;grid-row:6}
+.hero-pills{flex-direction:row;align-items:center}
+.pill-orange{flex-direction:column!important;padding:8px 16px}
+.how .steps{grid-template-columns:repeat(3,1fr);gap:12px}
+.steps li{background:#fff;color:#000;border-radius:14px;padding:12px 14px}
+.steps li:last-child{background:#000;color:#fff}
+.pack{max-width:620px;margin-inline:auto}
+#s-result:not([hidden]){display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:0 36px;align-items:start}
+#s-result>.res-card{grid-column:1;grid-row:1}
+#s-result>.don{grid-column:1;grid-row:2}
+#s-result>.dl-list{grid-column:2;grid-row:1}
+#s-result>.packbox{grid-column:2;grid-row:1/span 2;margin-top:0}
+#s-result>footer,#s-result>.actions{grid-column:1/-1}
+#s-result>.actions{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:center}
+#s-result>.actions .share{width:auto;min-width:320px}
+#s-result>.actions .share-hint{flex:1 1 280px;max-width:420px;margin:0}
+#s-result>.actions .row2{margin-top:0;min-width:360px}
+.btn,.share,.cta,.pill-black,.pill-orange,.round,.shutter{cursor:pointer}
+}

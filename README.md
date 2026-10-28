@@ -2,7 +2,10 @@
 
 Appli web de l'association Bear LGBTQIA+ Nous Nours 64 / 40 pour Movember 2026 : on se prend en photo (ou on choisit une photo), l'appli détoure la personne, place une moustache et compose un portrait 1080×1350 à partager avec deux images d'information. **Tout se passe dans le navigateur : aucune photo n'est envoyée.**
 
-Site : https://meydur64.github.io/photoshoot-movember/
+Site d'origine : https://meydur64.github.io/photoshoot-movember/ (créé par Meydur64).
+Version retravaillée (branche `azuko/photoshoot-2026`, fork Azuko9, pull request en brouillon) : https://azuko9.github.io/photoshoot-movember/
+
+**Affichage** : pensé pour le téléphone ; à partir de 1000 px de large (ordinateur, tablette en paysage), l'accueil passe en deux colonnes, les étapes se placent côte à côte et le résultat s'affiche en deux colonnes. Les téléphones ne sont pas concernés. Après une mise à jour, recharger deux fois (service worker ; `VERSION` dans `sw.js`, v35).
 
 ## Structure
 
@@ -45,4 +48,4 @@ Voir `LICENSES.md` : MediaPipe (Apache-2.0, Google), polices Fredoka et Geist (S
 
 ## Réalisation
 
-Les correctifs de sécurité, d'accessibilité et de robustesse (branche `correctifs-securite`) ont été réalisés avec Claude Code (IA d'Anthropic), à la demande de l'association.
+Projet créé par Meydur64 (association Nous Nours), retravaillé par Azuko9 avec son accord, avec Claude Code (IA d'Anthropic) : sécurité, accessibilité (Android testé sur Pixel 6a et sur un second téléphone ; iPhone et VoiceOver non testés), page de confidentialité, petits écrans, version ordinateur. Les champs « À COMPLÉTER » de `confidentialite.html` restent à remplir par l'association.

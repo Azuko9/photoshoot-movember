@@ -8,4 +8,5 @@
 6. **Compléter `confidentialite.html`** : adresse, responsable de publication, contact de l'éditeur (champs « À COMPLÉTER »).
 7. **Vérifier le compte Instagram cité** dans la légende (`@nousnours64.40`).
 8. **Choisir l'hébergement des en-têtes de sécurité** si l'on veut une protection complète (voir README, « Limites »).
-9. **Valider le résultat** puis autoriser (ou non) la publication : rien n'a été poussé vers GitHub.
+9. **Valider le résultat** : la branche `azuko/photoshoot-2026` est publiée sur le fork Azuko9 (pull request en brouillon) ; la fusion dans le dépôt de Meydur64 dépend de son accord.
+10. **Tester la version ordinateur** (résultat et écran caméra en grand écran) et **iPhone / VoiceOver** : non testés à ce jour.
